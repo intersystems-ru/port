@@ -1279,7 +1279,8 @@ Walkthrough(group, type)
 <Private>1</Private>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-  set sc = $$$OK  
+  set sc = $$$OK
+  if $data(i%ImportList(group)) quit sc  
   
   set partialMessage = $listget($$$ImportTypeDescriptions, group)
   do ..WriteExclusive(1, "Importing {P1} ... ", partialMessage)
@@ -1388,7 +1389,7 @@ Walkthrough(group, type)
       if '..SkipBackup $$$ThrowOnError(..Backup.Create(.list))
       $$$ThrowOnError(..ImportList())
     } else {
-      do ..Write("no pending items were found inside the repository.", 1)
+      do ..Write("[nl]no pending items were found inside the repository.", 1)
       do ..Write("[nl]Current repository might be empty or up-to-date.", 1)
     }
     
@@ -2660,7 +2661,7 @@ Returns 1 if VCS is enabled, 0 if not.</Description>
     if type '= "PRJ" {    
       if type = "CLS" {
         set sc = exporter.ExportClass(itemName)
-      } elseif ##class(Port.Project.Common).IsRoutine(InternalName) {
+      } elseif ##class(Port.Project.Helper).IsRoutine(InternalName) {
         set sc = exporter.ExportRoutine(InternalName)
       } elseif type = "PKG" {     
         set sc = exporter.ExportPackage(itemName)     
@@ -2877,7 +2878,7 @@ Called after the compile of the item is done.</Description>
         do ##class(%RoutineMgr).TS(testableClass_".CLS", .tct, .isTestUpToDate)
                 
         if 'isTestUpToDate {
-          set filePath = ##class(Port.Project.Common).ClassToFile(projectPath_"/"_testPath, testableClass)
+          set filePath = ##class(Port.Project.Helper).ClassToFile(projectPath_"/"_testPath, testableClass)
           $$$QuitOnError(xmlExporter.ExportTest(projectPath, testableClass))
           $$$QuitOnError(##class(Port.UnitTest.Manager).DebugLoadTestSuite(testPath))
         }       
@@ -3133,6 +3134,16 @@ Called after the compile of the item is done.</Description>
 <Implementation><![CDATA[	quit ##class(%File).NormalizeFilename(##class(Port.SourceControl.Config).GetExportPath())
 ]]></Implementation>
 </Method>
+
+<Method name="PurgeLastLog">
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	kill ^UnitTest.Result($order(^UnitTest.Result(""), -1))
+	quit $$$OK
+]]></Implementation>
+</Method>
 </Class>
 
 
@@ -3149,7 +3160,7 @@ Called after the compile of the item is done.</Description>
 </Class>
 
 
-<Project name="port" LastModified="2017-01-24 15:17:44.35944" Target="##class(Port.Project.Manager).Import(&quot;/CacheProjects/DEV/rconnect-base&quot;, 1, 0, 1)" TargetType="0">
+<Project name="port" LastModified="2017-01-24 16:37:13.684263" Target="##class(Port.Project.Manager).Import(&quot;/CacheProjects/DEV/rconnect-base&quot;, 1, 0, 1)" TargetType="0">
   <Items>
     <ProjectItem name="Port.Logger" type="CLS"></ProjectItem>
     <ProjectItem name="Port.Project.Backup" type="CLS"></ProjectItem>

@@ -1,10 +1,6 @@
 Class Port.Project.Exporter Extends Port.Project.Base
 {
 
-Property Project As %Studio.Project [ Private ];
-
-Property Overwrite As %Boolean [ InitialExpression = 0 ];
-
 Property PathDependencies As array Of %String [ Private ];
 
 Property ExportedPackages As %List [ Private ];
@@ -25,9 +21,10 @@ Method Export() As %Status
   if ..Project.Items.Count() = 0 {
     do ..Write("[nl]No items to export. Aborting ... [nl] ", 0)
     quit $$$OK
-  }
+  }  
   
   set ..IsBatch = 1
+  do ..Reset()
   
   do ..Write("[nl]Exporting project {P1} ...", 0, ..Project.Name)
   set cspDirectory = ##class(%File).NormalizeFilename($System.Util.InstallDirectory()_"csp/"_$$$lcase($namespace))
@@ -327,6 +324,12 @@ Method ExtractPathDependency(itemName As %String, destPath As %String) [ Final, 
     if ..PathDependencies.IsDefined(dir) quit
     do ..PathDependencies.SetAt(itemName, dir)
   }
+}
+
+Method Reset() As %Status
+{
+  set i%ExportedPackages = ""
+  do ..PathDependencies.Clear()
 }
 
 }

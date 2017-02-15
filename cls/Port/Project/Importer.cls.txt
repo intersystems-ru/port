@@ -211,7 +211,8 @@ Method ImportList() As %Status [ Internal, Private ]
 
 Method ImportType(group As %Integer) As %Status [ Internal, Private ]
 {
-  set sc = $$$OK  
+  set sc = $$$OK
+  if '$data(i%ImportList(group)) quit sc  
   
   set partialMessage = $listget($$$ImportTypeDescriptions, group)
   do ..WriteExclusive(1, "Importing {P1} ... ", partialMessage)
@@ -315,7 +316,7 @@ Method Import() As %Status
       if '..SkipBackup $$$ThrowOnError(..Backup.Create(.list))
       $$$ThrowOnError(..ImportList())
     } else {
-      do ..Write("no pending items were found inside the repository.", 1)
+      do ..Write("[nl]No pending items were found inside the repository.", 1)
       do ..Write("[nl]Current repository might be empty or up-to-date.", 1)
     }
     
@@ -332,10 +333,10 @@ Method Import() As %Status
     }
     
     if i%ImportList || (hasVCS && (i%ItemsList > 0)) {
-      do ..Write("[nl][nl]Synchronizing {P1} ...", 1, ..Project.Name)
+      do ..Write("[nl]Synchronizing {P1} ...", 1, ..Project.Name)
       $$$ThrowOnError(..SynchronizeProject(.added, .removed))
       do ..Write(" done.[nl]")
-      do ..Write("[nl]Project {P1} has been saved with {P2} items (+ {P2} - {P3}).[nl]", 1, ..Project.Name, ..Project.Items.Count(), added, removed)
+      do ..Write("Project {P1} has been saved with {P2} items (+ {P2} - {P3}).[nl]", 1, ..Project.Name, ..Project.Items.Count(), added, removed)
     }
     
     set ..AffectedCount = i%ImportList    
