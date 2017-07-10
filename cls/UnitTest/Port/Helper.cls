@@ -1,0 +1,103 @@
+Include portutils
+
+Class UnitTest.Port.Helper [ Abstract ]
+{
+
+Parameter MOCKAPPNAME = "/unittest/mockapp";
+
+ClassMethod CreateMockApplication() As %Status
+{
+  set ns = $namespace
+  new $namespace
+  
+  set $namespace = "%SYS"
+  set properties("Path") = ##class(%File).NormalizeFilename($System.Util.InstallDirectory()_"csp/mockapp")
+  set properties("NameSpace") = ns
+  set properties("IsNameSpaceDefault") = 1
+  
+  if ##class(Security.Applications).Exists(..#MOCKAPPNAME) {
+    $$$QuitOnError(..DestroyMockApplication())
+  }
+  return ##class(Security.Applications).Create(..#MOCKAPPNAME, .properties)
+}
+
+ClassMethod DestroyMockApplication() As %Status
+{
+  
+  set ns = $namespace
+  new $namespace
+  
+  set $namespace = "%SYS"
+  do ##class(%File).RemoveDirectoryTree($System.Util.InstallDirectory()_"csp/mockapp")
+  return ##class(Security.Applications).Delete(..#MOCKAPPNAME)
+}
+
+ClassMethod PrepareDummies(projectName As %String, Output items As %List = "", Output outputs As %List = "")
+{
+  #define CurrentWorkspace(%item) $$$NFN($$$FormatText("%1/%2", ##class(Port.Configuration).GetWorkspace(projectName), %item))
+  
+  set currentApp = $extract($System.CSP.GetDefaultApp($namespace), 2, *)
+  set a = $lb("PKG", "CLS", "CLS", "PKG", "PKG", "INC", "MAC", "DFI", "BAS", "MVB", "MVI", "CSP", "HTML", "HTML", "JS", "HTML", "ONLYEXTENSION", "PRJ")
+  
+  set items = $lb(
+    "Dummy.PKG",
+    "Dummy.Class.CLS",
+    "Dummy.Another.Package.Here.CLS",
+    "Dummy.And.Here.We.Shall.Test.Packages.PKG",
+    "Dummy.And.Here.We.Shall.Test.Packages.Without.Extension.PKG",
+    "dummy.INC",
+    "dummy.MAC",
+    "dummy.DFI",
+    "dummy.BAS",
+    "dummy.MVB",
+    "dummy.MVI",
+    $$$FormatText("%1/dummy/index.csp", currentApp),
+    $$$FormatText("%1/dummy/index.html", currentApp),
+    $$$FormatText("%1/dummy/composite.name.should.still.resolve.html", currentApp),
+    $$$FormatText("%1/dummy/js/some/deep/file.js", currentApp),
+    $$$FormatText("%1/dummy/js/some/deep/file.html", currentApp),
+    $$$FormatText("%1/dummy/js/some/deep/.onlyextension", currentApp)
+  )
+  
+  set outputs = $lb(
+    $$$CurrentWorkspace("cls/Dummy"),
+    $$$CurrentWorkspace("cls/Dummy/Class.cls"),
+    $$$CurrentWorkspace("cls/Dummy/Another/Package/Here.cls"),
+    $$$CurrentWorkspace("cls/Dummy/And/Here/We/Shall/Test/Packages"),
+    $$$CurrentWorkspace("cls/Dummy/And/Here/We/Shall/Test/Packages/Without/Extension"),
+    $$$CurrentWorkspace("inc/dummy.inc"),
+    $$$CurrentWorkspace("mac/dummy.mac"),
+    $$$CurrentWorkspace("dfi/dummy.dfi"),
+    $$$CurrentWorkspace("bas/dummy.bas"),
+    $$$CurrentWorkspace("mvb/dummy.mvb"),
+    $$$CurrentWorkspace("mvi/dummy.mvi"),
+    $$$CurrentWorkspace("web/dummy/index.csp"),
+    $$$CurrentWorkspace("web/dummy/index.html"),
+    $$$CurrentWorkspace("web/dummy/composite.name.should.still.resolve.html"),
+    $$$CurrentWorkspace("web/dummy/js/some/deep/file.js"),
+    $$$CurrentWorkspace("web/dummy/js/some/deep/file.html"),
+    $$$CurrentWorkspace("web/dummy/js/some/deep/.onlyextension")    
+  )
+}
+
+ClassMethod CreateDummyProject()
+{
+  set dummy = ##class(%Studio.Project).%New()
+  set dummy.Name = "dummy-project"
+  do dummy.AddItem("Port.SourceControl.AutoInstall.CLS")
+  set sc = dummy.%Save()
+  set dummy = ""  
+  do $System.Event.Signal($zparent, sc)
+}
+
+ClassMethod RemoveDummyProjectItem()
+{
+  set dummy = ##class(%Studio.Project).%OpenId("dummy-project")
+  do dummy.RemoveItem("Port.SourceControl.AutoInstall.CLS")
+  set sc = dummy.%Save()
+  set dummy = ""
+  do $System.Event.Signal($zparent, sc)
+}
+
+}
+

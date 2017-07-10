@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF8"?>
+<Export generator="Cache" version="25">
+<Class name="Dummy.Package.Class">
+<Abstract>1</Abstract>
+<TimeCreated>64471,57774.327013</TimeCreated>
+</Class>
+
+
+<Routine name="MVB.4" type="MVI" languagemode="11" generated="1"><![CDATA[
+    PROMPT ":"
+ PRINT
+ PRINT "PLEASE ENTER YOUR NAME " :
+ INPUT NAME
+ PRINT
+ IF NAME = "" OR NAME = "QUIT" THEN STOP
+ PRINT "HELLO THERE " : NAME
+ PRINT
+ PRINT "PLEASE ENTER A NUMBER OR A STRING OF LETTERS " :
+ INPUT RESPONSE
+ IF RESPONSE = "" OR RESPONSE = "QUIT" THEN STOP
+ PRINT
+ IF NUM(RESPONSE) THEN
+    PRINT "ABS VALUE OF " : RESPONSE : " IS " : ABS(RESPONSE)
+    PRINT "THE SQUARE IS " : RESPONSE * RESPONSE
+    PRINT "THE SQUARE ROOT IS " : SQRT(RESPONSE)
+    STOP
+ END
+ IF ALPHA(RESPONSE) THEN
+    PRINT "THE LENGTH OF " : RESPONSE : " IS " : LEN(RESPONSE)
+    STOP
+ END
+ PRINT "YOUR RESPONSE WAS NOT CONSIDERED NUMERIC OR ALPHABETIC"
+ END
+]]></Routine>
+
+
+<Project name="dummy-project" LastModified="2017-07-10 16:08:15.283452" Target="##class(Port.Project.Exporter).test()" TargetType="0">
+  <Items>
+    <ProjectItem name="Dummy.Package.Class" type="CLS"></ProjectItem>
+    <ProjectItem name="dummy.DFI" type="DFI"></ProjectItem>
+    <ProjectItem name="dummy.INC" type="MAC"></ProjectItem>
+    <ProjectItem name="dummy.MAC" type="MAC"></ProjectItem>
+    <ProjectItem name="dummy.MVB" type="MVB"></ProjectItem>
+    <ProjectItem name="MVB.4.MVI" type="MAC"></ProjectItem>
+  </Items>
+  <BreakPoints>
+    <BreakPoint Routine="Port.Project.Synchronizer.CLS" Offset="Purge+19"></BreakPoint>
+    <BreakPoint Routine="Port.Project.Synchronizer.CLS" Offset="Scan+7"></BreakPoint>
+    <BreakPoint Routine="Port.Project.Exporter.CLS" Offset="ExportClass+18"></BreakPoint>
+  </BreakPoints>
+</Project>
+
+
+<Routine name="dummy" type="INC"><![CDATA[
+]]></Routine>
+
+
+<Routine name="dummy" type="MAC" languagemode="0"><![CDATA[
+]]></Routine>
+
+
+<Document name="dummy.MVB"><![CDATA[
+
+]]></Document></Export>

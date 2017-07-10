@@ -61,29 +61,30 @@ Method %OnNew(target As %String, logLevel As %Integer = 2, sourceExtension = "")
     do ..BuildTypePaths(..BasePath)
     quit $$$OK 
   }
-  quit $$$ERROR(5001, "Cannot use invalid or relative paths: an absolute path is required.")
+  quit $$$PERROR($$$CannotUseRelativePath)
 }
 
-Method WriteExclusive(logLevel As %Integer, message As %String, params... As %String)
-{
-  if ..Logger.LogLevel '= logLevel quit
-  do ..Write(message, logLevel, params...)
-}
-
-Method LogExclusive(logLevel As %Integer, message As %String, params... As %String)
+Method LogExclusive(message As %String, logLevel As %Integer, params... As %String) As %String [ Internal ]
 {
   if ..Logger.LogLevel '= logLevel quit ""
   quit ..Log(message, logLevel, params...)
 }
 
-Method Write(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Private ]
+Method Log(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
 {
   quit ..Logger.Log(message, logLevel, params...)
 }
 
-Method Log(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Private ]
+Method LogLine(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
 {
-  quit ..Logger.Log(message, logLevel, params...)
+  
+  quit ..Logger.LogLine(message, logLevel, params...)
+}
+
+Method LogExclusiveLine(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
+{
+  if ..Logger.LogLevel '= logLevel quit ""
+  quit ..Logger.LogLine(message, logLevel, params...)
 }
 
 Method GetProjectName() As %String
@@ -110,7 +111,7 @@ Method Ignore(ignoredPaths As %ArrayOfDataTypes = "") As %Status
 
 Method IsIgnored(maybeIgnoredPath As %String) As %Boolean
 {
-  
+ 
   set key = ""
   set isIgnored = 0
   
@@ -132,8 +133,7 @@ Method ResolvePathType(itemType As %String, itemName As %String = "") As %String
     // InterSystems groups INC into MAC type, so we patch it checking the name instead.
     quit ..IncPath
   }
-  if itemType = "MAC" quit ..MacPath
-  if itemType = "CSP" quit ..WebPath
+  if itemType = "MAC" quit ..MacPath  
   if itemType = "MVB" quit ..MvbPath
   if itemType = "MVI" quit ..MviPath  
   if itemType = "BAS" quit ..BasPath
@@ -141,9 +141,28 @@ Method ResolvePathType(itemType As %String, itemName As %String = "") As %String
   quit ""
 }
 
+Method GetTypePath(itemType As %String, itemName As %String = "") As %String
+{
+ 
+  if itemType = "CLS" quit ..ClassPath
+  if itemType = "INT" quit ..IntPath
+  if itemType = "INC" || (itemType = "MAC" && ($piece(itemName, ".", 2) = "INC")) {
+    // InterSystems groups INC into MAC type, so we patch it checking the name instead.
+    quit ..IncPath
+  }
+  if itemType = "MAC" quit ..MacPath
+  if itemType = "CSP" quit ..WebPath
+  if itemType = "MVB" quit ..MvbPath
+  if itemType = "MVI" quit ..MviPath  
+  if itemType = "BAS" quit ..BasPath
+  if itemType = "DFI" quit ..DfiPath
+  if itemType = "PKG" quit ..ClassPath
+  quit ..WebPath
+}
+
 Method BuildTypePaths(workingDirectory As %String) As %Status [ Final, Internal, Private ]
 {
-  #define BuildTypedPath(%type) $lts($lb(workingDirectory, %type), ..Slash)
+  #define BuildTypedPath(%type) $lts($lb(workingDirectory, %type), $$$Slash)
   
   set ..ClassPath = $$$BuildTypedPath("cls")
   set ..IntPath   = $$$BuildTypedPath("int")
@@ -160,7 +179,7 @@ Method BuildTypePaths(workingDirectory As %String) As %Status [ Final, Internal,
 Method NormalizeOutput(itemName As %String, Output path As %String = "", Output extension As %String = "") As %String [ Private ]
 {
   
-  set extension = ##class(Port.Project.Helper).GetItemExtension(itemName)
+  set extension = ##class(Port.Util).GetItemExtension(itemName)
   set dest = ""
   
   // Package.Class.Name -> cls/Package/Class/Name.cls.txt
@@ -175,7 +194,7 @@ Method NormalizeOutput(itemName As %String, Output path As %String = "", Output 
   }
   
   // Routine.(type) -> /(type)/routine.(type).txt
-  elseif ##class(Port.Project.Helper).IsRoutine(itemName) {    
+  elseif ##class(Port.Util).IsRoutine(itemName) {    
     set type = $$$ucase($piece(itemName, ".", *))
     set path = ..ResolvePathType(type, itemName)
     set dest = path_..Slash_itemName
@@ -264,14 +283,14 @@ Method IsOutdated(current As %String, external As %String, isImport As %Boolean 
   if currentDate = 0 set lastModified = projectTS
   else  set lastModified = $select(currentDate ] projectTS : currentDate, 1: projectTS)
       
-  if ##class(Port.Project.Helper).IsRoutine(current) || 
-    (##class(Port.Project.Helper).GetItemExtension(current) = "CLS") {
+  if ##class(Port.Util).IsRoutine(current) || 
+    (##class(Port.Util).ResolveItemExtension(current) = "CLS") {
     set currentTS = $piece(##class(%RoutineMgr).TS(current, .compileTime), ".")
   } else {
     if 'isImport {
       set fullSourcePath = ##class(%File).NormalizeFilename(current, $System.Util.InstallDirectory())
     } else {
-      do ##class(Port.Project.Helper).CSPLogicalToPhysicalPath(current, .fullSourcePath)
+      do ##class(Port.Util).CSPLogicalToPhysicalPath(current, .fullSourcePath)
     }
     set currentTS = $zdatetime(##class(%File).GetFileDateModified(fullSourcePath), 3,,,,,,,,,0)
     // If the file is missing it's considered outdated as well.

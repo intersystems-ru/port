@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="UnitTest.Port.Project.Synchronizer">
+<Super>Port.UnitTest.TestCase,UnitTest.Port.Helper</Super>
+<TimeCreated>64471,56194.658409</TimeCreated>
+
+<Property name="a">
+<Type>%String</Type>
+</Property>
+</Class>
+</Export>
