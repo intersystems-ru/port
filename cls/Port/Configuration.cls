@@ -26,7 +26,7 @@ ClassMethod SetPrimaryWorkspace(newWorkspace As %String = "") As %String
 }
 
 /// Resolves any placeholders and gets the precise path for the specified project. This priorizes the custom workspace and falls back to the primary.
-ClassMethod GetWorkspace(projectName As %String = {$get(^||%Studio.Project)}) As %String
+ClassMethod GetWorkspace(projectName As %String = {$get(^||Port.Project)}) As %String
 {
   set customWorkspace = ..GetCustomWorkspace(projectName)
   if customWorkspace '= "" quit ..RewritePlaceHolders(customWorkspace, projectName,$lb("{NAMESPACE}","{PROJECT}","{USERNAME}"))
@@ -167,7 +167,7 @@ ClassMethod Uninstall() As %Status
   quit $$$OK
 }
 
-ClassMethod RewritePlaceHolders(basePath As %String, projectName As %String = {$get(^||%Studio.Project)}, allowedPlaceholders = "*", params... As %String) As %String [ Internal ]
+ClassMethod RewritePlaceHolders(basePath As %String, projectName As %String = {$get(^||Port.Project)}, allowedPlaceholders = "*", params... As %String) As %String [ Internal ]
 {
  
   if '$data(params) set params = ""

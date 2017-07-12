@@ -13,7 +13,7 @@ Method %OnNew(path As %String, logLevel As %Integer = 2, sourceExtension As %Str
 {
   $$$QuitOnError(##super(path, logLevel, sourceExtension))  
        
-  if '$isobject(..Project) {    
+  if '$isobject(..Project) {
     set ..ProjectName = "null"
     throw ##class(%Exception.StatusException).CreateFromStatus($$$PERROR($$$ExportingProjectNotFound, ..ProjectName))
   }
@@ -102,7 +102,7 @@ Method ExportWebFile(itemName As %String, ByRef exportList As %List = "") As %St
   if '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK
       
   $$$QuitOnError(##class(Port.Util).CSPLogicalToPhysicalPath(itemName, .source))
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(itemName, ..Project.Name)
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(itemName, ..Project.Name)
   set path = ##class(%File).GetDirectory(dest) 
   
   $$$QuitOnError(##class(Port.Util).CreateMissingPath(path))
@@ -130,7 +130,7 @@ Method ExportRoutine(name As %String, exportList As %List = "") As %Status
   set id = ##class(Port.Util).MountIdFromName(name, ..Project.Name)
   if '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK
 
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(name, ..Project.Name, ..SourceExtension)  
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(name, ..Project.Name, ..SourceExtension)  
   set path = ##class(%File).GetDirectory(dest)
   
   $$$QuitOnError(..Synchronizer.AddToWhitelist(name, dest))
@@ -176,7 +176,7 @@ Method ExportClass(className As %String, ByRef exportList As %String = "", fromP
   if 'fromPackage && '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK    
   
   set package = $piece(itemName, ".", 1, *-1)
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(itemName, ..Project.Name, ..SourceExtension)
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(itemName, ..Project.Name, ..SourceExtension)
   set path = ##class(%File).GetDirectory(dest)  
   
   $$$QuitOnError(..Synchronizer.AddToWhitelist(itemName, dest))

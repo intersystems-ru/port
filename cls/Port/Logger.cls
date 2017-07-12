@@ -5,6 +5,8 @@ Class Port.Logger Extends %RegisteredObject
 
 Property LogLevel As %Integer [ InitialExpression = 2 ];
 
+Property Silent As %Boolean [ InitialExpression = 0 ];
+
 Method %OnNew(logLevel As %Integer = 2) As %Status
 {
   if ((logLevel < 1) || (logLevel > 2)) {      
@@ -16,7 +18,7 @@ Method %OnNew(logLevel As %Integer = 2) As %Status
 
 Method Log(messageCode As %String, messageLogLevel = 2, params... As %String) As %String
 {
-  if ..LogLevel < messageLogLevel quit ""
+  if ..Silent || (..LogLevel < messageLogLevel) quit ""
   if '$data(params) set params = 0    
   set formattedParams = 0 
   for i=1:1:params {
@@ -31,7 +33,7 @@ Method Log(messageCode As %String, messageLogLevel = 2, params... As %String) As
 Method LogLine(messageCode As %String, messageLogLevel = 2, params... As %String) As %String
 {
   
-  if ..LogLevel < messageLogLevel quit ""
+  if ..Silent || (..LogLevel < messageLogLevel) quit ""
   quit ..Log(messageCode, messageLogLevel, params...)_$c(13, 10)
 }
 

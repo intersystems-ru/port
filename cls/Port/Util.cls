@@ -6,32 +6,40 @@ Class Port.Util [ Abstract ]
 ClassMethod ResolveItemExtension(itemName As %String) As %String
 {
   
-  set ext = $$$ucase($piece(itemName, ".", *)) 
+  set ext = $$$ucase($piece(itemName, ".", *))
   if $lf($$$RoutineExtensions, "."_ext) || (itemName [ "/") || (ext = "CLS") || (ext = "PRJ") quit ext
   quit "PKG"
 }
 
-ClassMethod GetItemWorkspaceLocation(itemName As %String, projectName As %String = {$get(^||%Studio.Project)}, sourceExtension = {##class(Port.Configuration).GetSourceExtension()}) As %String
+ClassMethod GetItemSourcePathFromWorkspace(itemName As %String, projectName As %String = {$get(^||Port.Project)}, sourceExtension = {##class(Port.Configuration).GetSourceExtension()}) As %String
 {
   
   set fullPath = ""
   set type = ..ResolveItemExtension(itemName)
   set defaultPath = $$$NFN(##class(Port.Configuration).GetWorkspace(projectName))
   
+  quit ..MountItemSourcePath(itemName, defaultPath, sourceExtension)
+}
+
+ClassMethod MountItemSourcePath(itemName As %String, workspacePath As %String, sourceExtension = {##class(Port.Configuration).GetSourceExtension()}) As %String [ Internal ]
+{
+  set fullPath = ""
+  set type = ..ResolveItemExtension(itemName)
+  
   if type = "CLS" {
-    set fullPath = ..ClassToFile(defaultPath_"/cls", $piece(itemName, ".", 1, *-1))
+    set fullPath = ..ClassToFile(workspacePath_"/cls", $piece(itemName, ".", 1, *-1))
   } elseif ..IsRoutine(itemName) {
     set ext = $$$lcase(type)
     set fileName = $$$lcase(itemName)_"."_##class(Port.Configuration).GetSourceExtension()
-    set fullPath = $$$NFN(defaultPath_"/"_ext_"/"_fileName) 
+    set fullPath = $$$NFN(workspacePath_"/"_ext_"/"_fileName) 
   } elseif type = "PKG" {
     // Deep package?
     set name = $replace(itemName, ".PKG", "")
-    set fullPath = ..ClassToFile(defaultPath_"/cls", name, sourceExtension, 0)   
+    set fullPath = ..ClassToFile(workspacePath_"/cls", name, sourceExtension, 0)   
   } else {
     if $extract(itemName, 1) = "/" set itemName = $extract(itemName, 2, *)
     set sourceFilePath = $replace(itemName, $System.CSP.GetAppName(itemName), "/web/")    
-    set fullPath = $$$NFN(defaultPath_sourceFilePath) 
+    set fullPath = $$$NFN(workspacePath_sourceFilePath) 
   } 
   quit fullPath
 }
@@ -44,7 +52,7 @@ ClassMethod ExtractType(absolutePath As %String, workspace As %String = {##class
   quit $$$ucase($piece(absolutePath, $$$Slash, ##class(%File).GetDirectoryLength(absoluteWorkspacePath) + 1))
 }
 
-ClassMethod MountIdFromName(name As %String, projectName As %String = {$get(^||%Studio.Project)}) As %String
+ClassMethod MountIdFromName(name As %String, projectName As %String = {$get(^||Port.Project)}) As %String
 {
   set nameOnly = $piece(name, ".", 1, *-1)
   set maskedMacs = $lb("BAS", "INT", "INC", "MVI")
@@ -166,13 +174,13 @@ ClassMethod CreateMissingPath(path As %String) As %Status
   quit $$$OK
 }
 
-ClassMethod GetIgnoredPaths(basePath As %String) As %ListOfDataTypes
+ClassMethod GetIgnoredPaths(projectName As %String = {$get(^||Port.Project)}) As %ListOfDataTypes
 {
- 
+  set workspaceDir = ##class(Port.Configuration).GetWorkspace(projectName)
   set ignoredPaths = ##class(%ListOfDataTypes).%New()
   
   set f = ##class(%FileCharacterStream).%New()
-  set f.Filename = basePath_"/port.json"  
+  set f.Filename = workspaceDir_"/.portignore"
   
   if f.Size > 0 {    
     while 'f.AtEnd {      

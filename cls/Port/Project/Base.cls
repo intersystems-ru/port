@@ -3,9 +3,9 @@ Include (portutils, portmd)
 Class Port.Project.Base Extends %RegisteredObject
 {
 
-Property Logger As Port.Logger [ Private ];
+Property Logger As Port.Logger;
 
-Property ProjectName As %String [ Private ];
+Property ProjectName As %String;
 
 Property Project As %Studio.Project [ Private ];
 
@@ -212,60 +212,6 @@ Method NormalizeOutput(itemName As %String, Output path As %String = "", Output 
     set path = ##class(%File).GetDirectory(dest) 
   }
   quit dest
-}
-
-ClassMethod CheckUbiquity(projectName As %String, ByRef ubiquityList As %String = 0) As %Status
-{
-  set sc = $$$OK
-  set (name, type, projects) = ""
-  
-  set sProjects = ##class(%SQL.Statement).%New()
-  $$$QuitOnError(sProjects.%PrepareClassQuery("%Studio.Project", "ProjectList"))   
-  set projectRows = sProjects.%Execute()
-  
-  set sProjectItems = ##class(%SQL.Statement).%New()
-  $$$QuitOnError(sProjectItems.%PrepareClassQuery("%Studio.Project", "ProjectItemsList"))
-  set projectItemsRows = sProjectItems.%Execute(projectName)
-  
-  while projectRows.%Next(.sc) {
-    if $$$ISERR(sc) quit
-    set currentProject = projectRows.%Get("Name")
-    if projectName '= currentProject {
-      set projects(projectName) = ""     
-    }
-  }
-  
-  while projectItemsRows.%Next(.sc) {
-    if $$$ISERR(sc) quit
-    set id = projectItemsRows.%Get("ID")
-    set type = projectItemsRows.%Get("Type")    
-    set name = projectItemsRows.%Get("Name")
-    set candidateId = id
-    set candidateProject = ""
-    for {      
-      set candidateProject = $order(projects(candidateProject))
-      quit:candidateProject=""
-      set candidateId = id
-      set $piece(candidateId, "||", 1) = candidateProject
-      if ##class(%Studio.ProjectItem).%ExistsId(candidateId) {
-        set ubiquityList = ubiquityList + 1
-        set ubiquityList(candidateId) = $listbuild(name, type)
-      } elseif type = "CLS" {
-        set class = ""
-        set parts = $length(name, ".")
-        set $piece(candidateId, "||", 3) = "PKG"
-        for i=parts:-1:1 {
-          set class = $piece(name,  ".", 1, i)
-          set $piece(candidateId, "||", 2) = class
-          if ##class(%Studio.ProjectItem).%ExistsId(candidateId) {
-            set ubiquityList = ubiquityList + 1
-            set ubiquityList(candidateId) = ""
-            quit
-          }
-        }
-      }
-    }    
-  }
 }
 
 Method IsOutdated(current As %String, external As %String, isImport As %Boolean = 0) As %Boolean

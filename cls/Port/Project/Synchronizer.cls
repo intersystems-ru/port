@@ -7,9 +7,9 @@ Property ExtraneousEntries As %List [ Private ];
 
 Property Whitelist As array Of %String [ Private ];
 
-Property Tool As Port.Project.Base;
+Property Tool As Port.Project.Base [ Private ];
 
-Property TypePaths As %List;
+Property TypePaths As %List [ Private ];
 
 Method %OnNew(tool As Port.Project.Base) As %Status
 {
@@ -25,24 +25,29 @@ Method PrepareTypePathList() [ Internal, Private ]
   set types = $lfs($piece($lts($$$ImportTypes), ",", 1, *-2)_",""")
   for i=1:1:$listlength(types) {
     set type = $listget(types, i)
-    // We need to pass a dummy item to prevent it falling into the falsy MAC type trap. e.g.: INC files.
+    // We need to pass a dummy item to prevent it FROM falling into a falsy MAC type trap. e.g.: INC files.
     set $list(i%TypePaths, $listlength(i%TypePaths) + 1) = ..Tool.GetTypePath(type, "dummy."_type)
   }
 }
 
-Method AddToWhitelist(itemName As %String, sourceLocation As %String) As %Status
+Method AddToWhitelist(itemName As %String, sourceLocation As %String = "") As %Status [ Internal ]
 {
+   
   set sc = $$$OK
   set slash = $$$Slash
   set type = ##class(Port.Util).ResolveItemExtension(itemName)
   set typePath = ..Tool.GetTypePath(type)
-  set basePath = typePath
+  
+  if sourceLocation = "" {
+    set workspacePath = $piece(typePath, $$$Slash, 1, *-1)
+    set sourceLocation = ##class(Port.Util).MountItemSourcePath(itemName, workspacePath)
+  }
   
   if $extract(typePath) = "/" {
-    set basePath = $extract(typePath, 2, *)
+    set typePath = $extract(typePath, 2, *)
   }
     
-  set absoluteBasePath = ##class(%File).NormalizeFilename(basePath, slash)
+  set absoluteBasePath = ##class(%File).NormalizeFilename(typePath, slash)
   set dirLength = $length(sourceLocation, slash)
   set dirLengthLimit = dirLength - (dirLength - $length(absoluteBasePath, slash))
   
@@ -59,9 +64,10 @@ Method AddToWhitelist(itemName As %String, sourceLocation As %String) As %Status
 
 Method Purge() As %Status
 {
+  
   set slash = $$$Slash
   set sc = $$$OK
-  set s = ##class(%SQL.Statement).%New()
+  set s = ##class(%SQL.Statement).%New()  
   
   $$$QuitOnError(s.%PrepareClassQuery("%File", "FileSet"))
   
@@ -73,7 +79,6 @@ Method Purge() As %Status
   
   for i=1:1:$listlength(i%TypePaths) {
     set pathToSearch = $listget(i%TypePaths, i)
-    break:pathToSearch["cls"
     set sc = ..Scan(s, pathToSearch)
     if $$$ISERR(sc) return sc
   }
@@ -113,10 +118,10 @@ Method Purge() As %Status
   return sc
 }
 
-Method Scan(statement As %SQL.Statement, path As %String) As %Status
+Method Scan(statement As %SQL.Statement, path As %String) As %Status [ Private ]
 {
    
-  set dir = ##class(%File).NormalizeDirectory(path)
+  set dir = $$$NFN(path)
   set row = statement.%Execute(dir)
   set sc = $$$OK
   

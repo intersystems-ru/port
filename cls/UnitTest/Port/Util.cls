@@ -21,7 +21,7 @@ Method TestResolveItemExtension()
   }
 }
 
-Method TestGetItemWorkspaceLocation()
+Method TestGetItemSourcePathFromWorkspace()
 {
   
   set projectName = "dummy-project"  
@@ -33,7 +33,7 @@ Method TestGetItemWorkspaceLocation()
   for i=1:1:$ll(entries) {
     set entry = $lg(entries, i)
     set expectation = $lg(expectations, i)
-    do $$$AssertEquals(expectation, ##class(Port.Util).GetItemWorkspaceLocation(entry, projectName), $$$FormatText("resolves %1 -> %2", entry, expectation))
+    do $$$AssertEquals(expectation, ##class(Port.Util).GetItemSourcePathFromWorkspace(entry, projectName), $$$FormatText("resolves %1 -> %2", entry, expectation))
   }
 }
 
@@ -186,25 +186,13 @@ Method TestExistsInProject()
 
 Method TestUbiquitousInProject()
 {
-  // We have to use job and events to prevent this test from breaking the current %SourceControl
-  // becase creating a new project overwrites the process global ^||%Studio.Project.
      
-  job ..CreateDummyProject()::10
-  set status = $System.Event.WaitMsg("", 10)
-  set sc = $lg(status, 2, $$$ERROR($$$GeneralError, "job timed out"))
-  
-  do $$$AssertStatusOK(sc, "dummy project created with success.")
-  if $$$ISERR(sc) quit sc
+  do ..CreateDummyProject()
   
   do $$$AssertEquals($lb("dummy-project"), ##class(Port.Util).UbiquitousInProject("port", "Port.SourceControl.AutoInstall.CLS"), "returns a list that contains 'dummy-project'")
   do $$$LogMessage("Removing the added item ...")
   
-  job ..RemoveDummyProjectItem()::10
-  set status = $System.Event.WaitMsg("", 10)
-  set sc = $lg(status, 2, $$$ERROR($$$GeneralError, "job timed out"))
-  
-  do $$$AssertStatusOK(sc, "item removed with success.")
-  if $$$ISERR(sc) quit sc
+  do ..RemoveDummyProjectItem()
   
   do $$$AssertEquals("", ##class(Port.Util).UbiquitousInProject("port", "Port.SourceControl.AutoInstall.CLS"), "returns an empty list")
   

@@ -36,7 +36,7 @@ XData Menu
 Method OnAfterSave(InternalName As %String) As %Status
 {
   #dim exporter As Port.Project.Exporter 
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   set sc = $$$OK
   if projectName '= "" && (projectName '[ "Default") {
     set exportPath = ##class(Port.Configuration).GetWorkspace()
@@ -64,7 +64,6 @@ Method OnAfterSave(InternalName As %String) As %Status
         if exported '= "" && ##class(Port.UnitTest.Util).AssertTestableClass(InternalName, .testableClass) {
           set testPath = ##class(Port.Configuration).GetTestPath()
           set xmlExporter = ##class(Port.Project.XMLExporter).%New(exportPath, 2)
-          write $$$NFN(exportPath_"/"_testPath), !
           do xmlExporter.ExportTest($$$NFN(exportPath_"/"_testPath), testableClass, .ssc)          
           set sc = $$$ADDSC(sc, ssc)
         }
@@ -91,7 +90,7 @@ Method OnAfterSave(InternalName As %String) As %Status
 
 Method OnBeforeSave() As %Status
 {
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   
   if projectName '= "" && (projectName [ "Default") {
     write "Port: "_$$$FormatMsg("Port Log Messages", $$$CannotUseDefault), !
@@ -107,9 +106,9 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
   // We must know if the user is importing from a XML and prevent it from being exported.
   set %importingFromXML = (Name = 6)
   
-  if $data(^||%Studio.Project) {
-    set projectName = ^||%Studio.Project
-    set fullPath = ##class(Port.Util).GetItemWorkspaceLocation(InternalName)
+  if $data(^||Port.Project) {
+    set projectName = ^||Port.Project
+    set fullPath = ##class(Port.Util).GetItemSourcePathFromWorkspace(InternalName)
     set projectPath = ##class(Port.Configuration).GetWorkspace()
     set testPath = ##class(Port.Configuration).GetTestPath()
     set logLevel = ##class(Port.Configuration).GetLogLevel()
@@ -130,9 +129,8 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if name = "%MLExportTests" {
       quit ##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath)
     }
-    if name = "%MLRunTests" && (projectPath '= "") {
-      $$$QuitOnError(##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath))
-      $$$QuitOnError(##class(Port.UnitTest.Manager).RunTest(testPath, "/recursive/run/nodelete"))
+    if name = "%MLRunTests" && (projectPath '= "") {      
+      $$$QuitOnError(##class(Port.UnitTest.Manager).RunTest(testPath, "/recursive/run/noload/nodelete"))
     }       
     if name = "%MLImport" {
       $$$QuitOnError(##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 0,,sourceExtension))
@@ -244,11 +242,11 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
   
   if name = "%CMLRunActiveTest" {
     set Enabled = 
-      ##class(Port.Util).ExistsInProject(^||%Studio.Project, InternalName) &&
+      ##class(Port.Util).ExistsInProject(^||Port.Project, InternalName) &&
       ##class(Port.UnitTest.Util).AssertTestableClass(InternalName)
   } 
   
-  set isProjectOpened = ($get(^||%Studio.Project, "Default") '[ "Default")
+  set isProjectOpened = ($get(^||Port.Project, "Default") '[ "Default")
   if 'isProjectOpened {
     set Enabled = 0
   }
@@ -259,7 +257,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 Method OnAfterCompile(InternalName As %String) As %Status
 {
   if $get(%importingFromXML, 0) quit $$$OK
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   set sc = $$$OK
   
   if projectName '= "" && (projectName '[ "Default") {
@@ -298,16 +296,18 @@ Method OnBeforeDelete(InternalName As %String) As %Status
 /// to load the item from an external format.
 Method OnBeforeLoad(InternalName As %String) As %Status
 {
-  set projectName = $get(^||%Studio.Project)
+  // We need to use our own project global to prevent %Studio.Project from disrupting the current source control hooks.
+  // This also allows us to modify the project only if certain conditions are met.
+  set studioProject = $get(^||%Studio.Project)
+  if studioProject '= "" set ^||Port.Project = studioProject
+  set projectName = ^||Port.Project
+  
   set ubiquitousList = ##class(Port.Util).UbiquitousInProject(projectName, InternalName)
   set isUnrelated = '##class(Port.Util).ExistsInProject(projectName, InternalName)
   if ubiquitousList '= "" {
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected, InternalName, $lts(ubiquitousList, ", "))
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected2)
   }
-  /*if isUnrelated {
-    write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UnrelatedToProject, InternalName, projectName)
-  }*/  
   quit ..OnBeforeSave()
 }
 

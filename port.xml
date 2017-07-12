@@ -43,7 +43,7 @@ Sets the primary path where the project should be exported. This can be overwrit
 <Description>
 Resolves any placeholders and gets the precise path for the specified project. This priorizes the custom workspace and falls back to the primary.</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>projectName:%String=$get(^||%Studio.Project)</FormalSpec>
+<FormalSpec>projectName:%String=$get(^||Port.Project)</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
   set customWorkspace = ..GetCustomWorkspace(projectName)
@@ -265,7 +265,7 @@ Remove all Port configurations. This will not erase project logs.</Description>
 <Method name="RewritePlaceHolders">
 <Internal>1</Internal>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>basePath:%String,projectName:%String=$get(^||%Studio.Project),allowedPlaceholders="*",params...:%String</FormalSpec>
+<FormalSpec>basePath:%String,projectName:%String=$get(^||Port.Project),allowedPlaceholders="*",params...:%String</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
  
@@ -302,6 +302,11 @@ Remove all Port configurations. This will not erase project logs.</Description>
 <InitialExpression>2</InitialExpression>
 </Property>
 
+<Property name="Silent">
+<Type>%Boolean</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
 <Method name="%OnNew">
 <FormalSpec>logLevel:%Integer=2</FormalSpec>
 <ReturnType>%Status</ReturnType>
@@ -318,7 +323,7 @@ Remove all Port configurations. This will not erase project logs.</Description>
 <FormalSpec>messageCode:%String,messageLogLevel=2,params...:%String</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-  if ..LogLevel < messageLogLevel quit ""
+  if ..Silent || (..LogLevel < messageLogLevel) quit ""
   if '$data(params) set params = 0    
   set formattedParams = 0 
   for i=1:1:params {
@@ -336,7 +341,7 @@ Remove all Port configurations. This will not erase project logs.</Description>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
   
-  if ..LogLevel < messageLogLevel quit ""
+  if ..Silent || (..LogLevel < messageLogLevel) quit ""
   quit ..Log(messageCode, messageLogLevel, params...)_$c(13, 10)
 ]]></Implementation>
 </Method>
@@ -457,12 +462,10 @@ Scan(group, type, created)
 
 <Property name="Logger">
 <Type>Port.Logger</Type>
-<Private>1</Private>
 </Property>
 
 <Property name="ProjectName">
 <Type>%String</Type>
-<Private>1</Private>
 </Property>
 
 <Property name="Project">
@@ -767,64 +770,6 @@ Scan(group, type, created)
 ]]></Implementation>
 </Method>
 
-<Method name="CheckUbiquity">
-<ClassMethod>1</ClassMethod>
-<FormalSpec><![CDATA[projectName:%String,&ubiquityList:%String=0]]></FormalSpec>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
-  set sc = $$$OK
-  set (name, type, projects) = ""
-  
-  set sProjects = ##class(%SQL.Statement).%New()
-  $$$QuitOnError(sProjects.%PrepareClassQuery("%Studio.Project", "ProjectList"))   
-  set projectRows = sProjects.%Execute()
-  
-  set sProjectItems = ##class(%SQL.Statement).%New()
-  $$$QuitOnError(sProjectItems.%PrepareClassQuery("%Studio.Project", "ProjectItemsList"))
-  set projectItemsRows = sProjectItems.%Execute(projectName)
-  
-  while projectRows.%Next(.sc) {
-    if $$$ISERR(sc) quit
-    set currentProject = projectRows.%Get("Name")
-    if projectName '= currentProject {
-      set projects(projectName) = ""     
-    }
-  }
-  
-  while projectItemsRows.%Next(.sc) {
-    if $$$ISERR(sc) quit
-    set id = projectItemsRows.%Get("ID")
-    set type = projectItemsRows.%Get("Type")    
-    set name = projectItemsRows.%Get("Name")
-    set candidateId = id
-    set candidateProject = ""
-    for {      
-      set candidateProject = $order(projects(candidateProject))
-      quit:candidateProject=""
-      set candidateId = id
-      set $piece(candidateId, "||", 1) = candidateProject
-      if ##class(%Studio.ProjectItem).%ExistsId(candidateId) {
-        set ubiquityList = ubiquityList + 1
-        set ubiquityList(candidateId) = $listbuild(name, type)
-      } elseif type = "CLS" {
-        set class = ""
-        set parts = $length(name, ".")
-        set $piece(candidateId, "||", 3) = "PKG"
-        for i=parts:-1:1 {
-          set class = $piece(name,  ".", 1, i)
-          set $piece(candidateId, "||", 2) = class
-          if ##class(%Studio.ProjectItem).%ExistsId(candidateId) {
-            set ubiquityList = ubiquityList + 1
-            set ubiquityList(candidateId) = ""
-            quit
-          }
-        }
-      }
-    }    
-  }
-]]></Implementation>
-</Method>
-
 <Method name="IsOutdated">
 <FormalSpec>current:%String,external:%String,isImport:%Boolean=0</FormalSpec>
 <ReturnType>%Boolean</ReturnType>
@@ -907,7 +852,7 @@ Scan(group, type, created)
 <Implementation><![CDATA[
   $$$QuitOnError(##super(path, logLevel, sourceExtension))  
        
-  if '$isobject(..Project) {    
+  if '$isobject(..Project) {
     set ..ProjectName = "null"
     throw ##class(%Exception.StatusException).CreateFromStatus($$$PERROR($$$ExportingProjectNotFound, ..ProjectName))
   }
@@ -1011,7 +956,7 @@ Scan(group, type, created)
   if '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK
       
   $$$QuitOnError(##class(Port.Util).CSPLogicalToPhysicalPath(itemName, .source))
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(itemName, ..Project.Name)
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(itemName, ..Project.Name)
   set path = ##class(%File).GetDirectory(dest) 
   
   $$$QuitOnError(##class(Port.Util).CreateMissingPath(path))
@@ -1042,7 +987,7 @@ Scan(group, type, created)
   set id = ##class(Port.Util).MountIdFromName(name, ..Project.Name)
   if '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK
 
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(name, ..Project.Name, ..SourceExtension)  
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(name, ..Project.Name, ..SourceExtension)  
   set path = ##class(%File).GetDirectory(dest)
   
   $$$QuitOnError(..Synchronizer.AddToWhitelist(name, dest))
@@ -1091,7 +1036,7 @@ Scan(group, type, created)
   if 'fromPackage && '##class(%Studio.ProjectItem).%ExistsId(id) quit $$$OK    
   
   set package = $piece(itemName, ".", 1, *-1)
-  set dest = ##class(Port.Util).GetItemWorkspaceLocation(itemName, ..Project.Name, ..SourceExtension)
+  set dest = ##class(Port.Util).GetItemSourcePathFromWorkspace(itemName, ..Project.Name, ..SourceExtension)
   set path = ##class(%File).GetDirectory(dest)  
   
   $$$QuitOnError(..Synchronizer.AddToWhitelist(itemName, dest))
@@ -1668,7 +1613,7 @@ Scan(group, type, created)
   set utility = ""  
   set utilityTypes("E") = "Port.Project.Exporter"
   set utilityTypes("I") = "Port.Project.Importer"
-  set utilityTypes("X") = "Port.Project.XMLExporter"  
+  set utilityTypes("X") = "Port.Project.XMLExporter"
   try {
     set utility = $classmethod(utilityTypes(type), "%New", path, logLevel, sourceExtension)
     quit
@@ -1755,7 +1700,7 @@ Scan(group, type, created)
 
 <Method name="RemoveInvalidItems">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>projectName:%String=^||%Studio.Project</FormalSpec>
+<FormalSpec>projectName:%String=^||Port.Project</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   set project = ##class(%Studio.Project).%OpenId(projectName)
@@ -1849,10 +1794,12 @@ LoopThroughType(projectName, importedList, group)
 
 <Property name="Tool">
 <Type>Port.Project.Base</Type>
+<Private>1</Private>
 </Property>
 
 <Property name="TypePaths">
 <Type>%List</Type>
+<Private>1</Private>
 </Property>
 
 <Method name="%OnNew">
@@ -1874,27 +1821,33 @@ LoopThroughType(projectName, importedList, group)
   set types = $lfs($piece($lts($$$ImportTypes), ",", 1, *-2)_",""")
   for i=1:1:$listlength(types) {
     set type = $listget(types, i)
-    // We need to pass a dummy item to prevent it falling into the falsy MAC type trap. e.g.: INC files.
+    // We need to pass a dummy item to prevent it FROM falling into a falsy MAC type trap. e.g.: INC files.
     set $list(i%TypePaths, $listlength(i%TypePaths) + 1) = ..Tool.GetTypePath(type, "dummy."_type)
   }
 ]]></Implementation>
 </Method>
 
 <Method name="AddToWhitelist">
-<FormalSpec>itemName:%String,sourceLocation:%String</FormalSpec>
+<Internal>1</Internal>
+<FormalSpec>itemName:%String,sourceLocation:%String=""</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
+   
   set sc = $$$OK
   set slash = $$$Slash
   set type = ##class(Port.Util).ResolveItemExtension(itemName)
   set typePath = ..Tool.GetTypePath(type)
-  set basePath = typePath
+  
+  if sourceLocation = "" {
+    set workspacePath = $piece(typePath, $$$Slash, 1, *-1)
+    set sourceLocation = ##class(Port.Util).MountItemSourcePath(itemName, workspacePath)
+  }
   
   if $extract(typePath) = "/" {
-    set basePath = $extract(typePath, 2, *)
+    set typePath = $extract(typePath, 2, *)
   }
     
-  set absoluteBasePath = ##class(%File).NormalizeFilename(basePath, slash)
+  set absoluteBasePath = ##class(%File).NormalizeFilename(typePath, slash)
   set dirLength = $length(sourceLocation, slash)
   set dirLengthLimit = dirLength - (dirLength - $length(absoluteBasePath, slash))
   
@@ -1913,9 +1866,10 @@ LoopThroughType(projectName, importedList, group)
 <Method name="Purge">
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
+  
   set slash = $$$Slash
   set sc = $$$OK
-  set s = ##class(%SQL.Statement).%New()
+  set s = ##class(%SQL.Statement).%New()  
   
   $$$QuitOnError(s.%PrepareClassQuery("%File", "FileSet"))
   
@@ -1927,7 +1881,6 @@ LoopThroughType(projectName, importedList, group)
   
   for i=1:1:$listlength(i%TypePaths) {
     set pathToSearch = $listget(i%TypePaths, i)
-    break:pathToSearch["cls"
     set sc = ..Scan(s, pathToSearch)
     if $$$ISERR(sc) return sc
   }
@@ -1970,10 +1923,11 @@ LoopThroughType(projectName, importedList, group)
 
 <Method name="Scan">
 <FormalSpec>statement:%SQL.Statement,path:%String</FormalSpec>
+<Private>1</Private>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
    
-  set dir = ##class(%File).NormalizeDirectory(path)
+  set dir = $$$NFN(path)
   set row = statement.%Execute(dir)
   set sc = $$$OK
   
@@ -2341,7 +2295,7 @@ LoopThroughType(projectName, importedList, group)
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   #dim exporter As Port.Project.Exporter 
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   set sc = $$$OK
   if projectName '= "" && (projectName '[ "Default") {
     set exportPath = ##class(Port.Configuration).GetWorkspace()
@@ -2369,7 +2323,6 @@ LoopThroughType(projectName, importedList, group)
         if exported '= "" && ##class(Port.UnitTest.Util).AssertTestableClass(InternalName, .testableClass) {
           set testPath = ##class(Port.Configuration).GetTestPath()
           set xmlExporter = ##class(Port.Project.XMLExporter).%New(exportPath, 2)
-          write $$$NFN(exportPath_"/"_testPath), !
           do xmlExporter.ExportTest($$$NFN(exportPath_"/"_testPath), testableClass, .ssc)          
           set sc = $$$ADDSC(sc, ssc)
         }
@@ -2398,7 +2351,7 @@ LoopThroughType(projectName, importedList, group)
 <Method name="OnBeforeSave">
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   
   if projectName '= "" && (projectName [ "Default") {
     write "Port: "_$$$FormatMsg("Port Log Messages", $$$CannotUseDefault), !
@@ -2417,9 +2370,9 @@ LoopThroughType(projectName, importedList, group)
   // We must know if the user is importing from a XML and prevent it from being exported.
   set %importingFromXML = (Name = 6)
   
-  if $data(^||%Studio.Project) {
-    set projectName = ^||%Studio.Project
-    set fullPath = ##class(Port.Util).GetItemWorkspaceLocation(InternalName)
+  if $data(^||Port.Project) {
+    set projectName = ^||Port.Project
+    set fullPath = ##class(Port.Util).GetItemSourcePathFromWorkspace(InternalName)
     set projectPath = ##class(Port.Configuration).GetWorkspace()
     set testPath = ##class(Port.Configuration).GetTestPath()
     set logLevel = ##class(Port.Configuration).GetLogLevel()
@@ -2440,9 +2393,8 @@ LoopThroughType(projectName, importedList, group)
     if name = "%MLExportTests" {
       quit ##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath)
     }
-    if name = "%MLRunTests" && (projectPath '= "") {
-      $$$QuitOnError(##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath))
-      $$$QuitOnError(##class(Port.UnitTest.Manager).RunTest(testPath, "/recursive/run/nodelete"))
+    if name = "%MLRunTests" && (projectPath '= "") {      
+      $$$QuitOnError(##class(Port.UnitTest.Manager).RunTest(testPath, "/recursive/run/noload/nodelete"))
     }       
     if name = "%MLImport" {
       $$$QuitOnError(##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 0,,sourceExtension))
@@ -2557,11 +2509,11 @@ LoopThroughType(projectName, importedList, group)
   
   if name = "%CMLRunActiveTest" {
     set Enabled = 
-      ##class(Port.Util).ExistsInProject(^||%Studio.Project, InternalName) &&
+      ##class(Port.Util).ExistsInProject(^||Port.Project, InternalName) &&
       ##class(Port.UnitTest.Util).AssertTestableClass(InternalName)
   } 
   
-  set isProjectOpened = ($get(^||%Studio.Project, "Default") '[ "Default")
+  set isProjectOpened = ($get(^||Port.Project, "Default") '[ "Default")
   if 'isProjectOpened {
     set Enabled = 0
   }
@@ -2576,7 +2528,7 @@ Called after the compile of the item is done.</Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   if $get(%importingFromXML, 0) quit $$$OK
-  set projectName = $get(^||%Studio.Project)
+  set projectName = $get(^||Port.Project)
   set sc = $$$OK
   
   if projectName '= "" && (projectName '[ "Default") {
@@ -2622,16 +2574,18 @@ to load the item from an external format.</Description>
 <FormalSpec>InternalName:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-  set projectName = $get(^||%Studio.Project)
+  // We need to use our own project global to prevent %Studio.Project from disrupting the current source control hooks.
+  // This also allows us to modify the project only if certain conditions are met.
+  set studioProject = $get(^||%Studio.Project)
+  if studioProject '= "" set ^||Port.Project = studioProject
+  set projectName = ^||Port.Project
+  
   set ubiquitousList = ##class(Port.Util).UbiquitousInProject(projectName, InternalName)
   set isUnrelated = '##class(Port.Util).ExistsInProject(projectName, InternalName)
   if ubiquitousList '= "" {
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected, InternalName, $lts(ubiquitousList, ", "))
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected2)
   }
-  /*if isUnrelated {
-    write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UnrelatedToProject, InternalName, projectName)
-  }*/  
   quit ..OnBeforeSave()
 ]]></Implementation>
 </Method>
@@ -3173,7 +3127,7 @@ to load the item from an external format.</Description>
 
 <Method name="LogChange">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>projectName=^||%Studio.Project,itemName:%String=""</FormalSpec>
+<FormalSpec>projectName=^||Port.Project,itemName:%String=""</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   do ..ExtractItemDescription(itemName, .name, .type)
@@ -3968,15 +3922,15 @@ Menu
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
   
-  set ext = $$$ucase($piece(itemName, ".", *)) 
+  set ext = $$$ucase($piece(itemName, ".", *))
   if $lf($$$RoutineExtensions, "."_ext) || (itemName [ "/") || (ext = "CLS") || (ext = "PRJ") quit ext
   quit "PKG"
 ]]></Implementation>
 </Method>
 
-<Method name="GetItemWorkspaceLocation">
+<Method name="GetItemSourcePathFromWorkspace">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>itemName:%String,projectName:%String=$get(^||%Studio.Project),sourceExtension=##class(Port.Configuration).GetSourceExtension()</FormalSpec>
+<FormalSpec>itemName:%String,projectName:%String=$get(^||Port.Project),sourceExtension=##class(Port.Configuration).GetSourceExtension()</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
   
@@ -3984,20 +3938,33 @@ Menu
   set type = ..ResolveItemExtension(itemName)
   set defaultPath = $$$NFN(##class(Port.Configuration).GetWorkspace(projectName))
   
+  quit ..MountItemSourcePath(itemName, defaultPath, sourceExtension)
+]]></Implementation>
+</Method>
+
+<Method name="MountItemSourcePath">
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>itemName:%String,workspacePath:%String,sourceExtension=##class(Port.Configuration).GetSourceExtension()</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+  set fullPath = ""
+  set type = ..ResolveItemExtension(itemName)
+  
   if type = "CLS" {
-    set fullPath = ..ClassToFile(defaultPath_"/cls", $piece(itemName, ".", 1, *-1))
+    set fullPath = ..ClassToFile(workspacePath_"/cls", $piece(itemName, ".", 1, *-1))
   } elseif ..IsRoutine(itemName) {
     set ext = $$$lcase(type)
     set fileName = $$$lcase(itemName)_"."_##class(Port.Configuration).GetSourceExtension()
-    set fullPath = $$$NFN(defaultPath_"/"_ext_"/"_fileName) 
+    set fullPath = $$$NFN(workspacePath_"/"_ext_"/"_fileName) 
   } elseif type = "PKG" {
     // Deep package?
     set name = $replace(itemName, ".PKG", "")
-    set fullPath = ..ClassToFile(defaultPath_"/cls", name, sourceExtension, 0)   
+    set fullPath = ..ClassToFile(workspacePath_"/cls", name, sourceExtension, 0)   
   } else {
     if $extract(itemName, 1) = "/" set itemName = $extract(itemName, 2, *)
     set sourceFilePath = $replace(itemName, $System.CSP.GetAppName(itemName), "/web/")    
-    set fullPath = $$$NFN(defaultPath_sourceFilePath) 
+    set fullPath = $$$NFN(workspacePath_sourceFilePath) 
   } 
   quit fullPath
 ]]></Implementation>
@@ -4017,7 +3984,7 @@ Menu
 
 <Method name="MountIdFromName">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>name:%String,projectName:%String=$get(^||%Studio.Project)</FormalSpec>
+<FormalSpec>name:%String,projectName:%String=$get(^||Port.Project)</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
   set nameOnly = $piece(name, ".", 1, *-1)
@@ -4175,14 +4142,14 @@ Menu
 
 <Method name="GetIgnoredPaths">
 <ClassMethod>1</ClassMethod>
-<FormalSpec>basePath:%String</FormalSpec>
+<FormalSpec>projectName:%String=$get(^||Port.Project)</FormalSpec>
 <ReturnType>%ListOfDataTypes</ReturnType>
 <Implementation><![CDATA[
- 
+  set workspaceDir = ##class(Port.Configuration).GetWorkspace(projectName)
   set ignoredPaths = ##class(%ListOfDataTypes).%New()
   
   set f = ##class(%FileCharacterStream).%New()
-  set f.Filename = basePath_"/port.json"  
+  set f.Filename = workspaceDir_"/.portignore"
   
   if f.Size > 0 {    
     while 'f.AtEnd {      
@@ -4308,6 +4275,90 @@ Menu
   set sc = dummy.%Save()
   set dummy = ""
   do $System.Event.Signal($zparent, sc)
+]]></Implementation>
+</Method>
+
+<Method name="CreateDummyProjectFromFixture">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>fixturePath:%String,projectName:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  
+  set source = $$$NFN(fixturePath_"/"_projectName)
+  set dest = $$$NFN(fixturePath_"/_/"_projectName)
+  set copied = ##class(%File).CopyDir(source, dest, 1,, 1)
+  if 'copied return $$$PERROR($$$UnableToCopySource, source, dest)
+  
+  job ..ImportProjectEvented($$$NFN(dest_"/"_projectName))::10
+  
+  set e = $System.Event.WaitMsg("", 10)
+  if $lg(e) = 0 return $$$ERROR($$$GeneralError, "job timed out")
+  set sc = $lg(e, 2) if $$$ISERR(sc) return sc
+  
+  return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ImportProjectEvented">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>path</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[  do $System.Event.Signal($zparent, ##class(%Studio.Project).Import(path_".xml"))
+]]></Implementation>
+</Method>
+
+<Method name="DeleteDummyProject">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>fixturePath:%String,projectName:%String="dummy-project"</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  set rows = ##class(%SQL.Statement).%ExecDirect(, "SELECT NAME FROM %STUDIO.PROJECTITEM WHERE PROJECT = ?", projectName)
+  while rows.%Next(.sc) {
+    if $$$ISERR(sc) return sc
+    set itemName = rows.%Get("Name")
+    set isClass = ##class(%Dictionary.ClassDefinition).%ExistsId(itemName)
+    
+    if (##class(Port.Util).IsRoutine(itemName) || 
+        ##class(%RoutineMgr).IsCSPName(itemName) ||
+        isClass
+    ) {
+      if isClass set itemName = itemName_".CLS"
+      set sc = ##class(%RoutineMgr).Delete(itemName)
+      if $$$ISERR(sc) return sc
+    } else {
+      set sc = ##class(Port.Util).CSPPhysicalToLogicalPath(itemName, .logicalPath)
+      if $$$ISERR(sc) return sc
+      set sc = ##class(%File).Delete(logicalPath)
+      if $$$ISERR(sc) return sc
+    }
+  }
+  set normalizedTargetDir = $$$NFN(fixturePath_"/_")
+  
+  set removed = ##class(%File).RemoveDirectoryTree(normalizedTargetDir)
+  if 'removed return $$$PERROR($$$UnableToRemoveDirectory, normalizedTargetDir)
+  
+  return $System.OBJ.DeleteProject(projectName)
+]]></Implementation>
+</Method>
+
+<Method name="GetDummyProjectSourceLocation">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>projectName:%String,fixturePath:%String</FormalSpec>
+<ReturnType>%ArrayOfDataTypes</ReturnType>
+<Implementation><![CDATA[
+  set locations = ##class(%ArrayOfDataTypes).%New()
+  set rows = ##class(%SQL.Statement).%ExecDirect(, "SELECT NAME, TYPE FROM %STUDIO.PROJECTITEM WHERE PROJECT = ?", projectName)
+  while rows.%Next(.sc) {
+    if $$$ISERR(sc) return sc
+    set type = rows.%Get("Type")
+    set itemName = rows.%Get("Name")
+    
+    if type = "CLS" set itemName = itemName_".CLS"
+    set location = ##class(Port.Util).MountItemSourcePath(itemName, fixturePath)
+    
+    do locations.SetAt(location, itemName)
+  }
+  quit locations
 ]]></Implementation>
 </Method>
 </Class>
@@ -4487,9 +4538,59 @@ CreateFile
 <Super>Port.UnitTest.TestCase,UnitTest.Port.Helper</Super>
 <TimeCreated>64471,56194.658409</TimeCreated>
 
-<Property name="a">
-<Type>%String</Type>
+<Property name="Exporter">
+<Type>Port.Project.Exporter</Type>
 </Property>
+
+<Method name="OnBeforeOneTest">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  
+  $$$QuitOnError(..CreateDummyProjectFromFixture(..GetTestDirectory("../fixtures"), "dummy-project"))
+  set ..Exporter = ##class(Port.Project.Exporter).%New(..GetTestDirectory("../fixtures/_/dummy-project"), 1)
+  set ..Exporter.Logger.Silent = 1
+  
+  // This is a hack to force the workspace to be resetted back to where it started.
+  // We have to do that because simply by opening a %Studio.Project instance already changes it's value.  
+  
+  return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="OnAfterOneTest">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[  return ..DeleteDummyProject(..GetTestDirectory("../fixtures"), "dummy-project")
+]]></Implementation>
+</Method>
+
+<Method name="TestPurge">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+  
+  set synchronizer = ##class(Port.Project.Synchronizer).%New(..Exporter)    
+  
+  do synchronizer.AddToWhitelist("Dummy.Package.Class.CLS")
+  do synchronizer.AddToWhitelist("dummy.MAC")
+  do synchronizer.AddToWhitelist("dummy.INC")
+  do synchronizer.AddToWhitelist("dummy.MVB")
+  do synchronizer.AddToWhitelist($System.CSP.GetDefaultApp($namespace)_"/index.html")
+  do synchronizer.AddToWhitelist("MVB.4.MVI")
+  do synchronizer.AddToWhitelist("dummy.DFI")
+  
+  set sc = synchronizer.Purge()
+  
+  set items = ..GetDummyProjectSourceLocation("dummy-project", ..GetTestDirectory("../fixtures/_/dummy-project"))
+  set itemName = ""
+  set templateAssertion = "%1 -> %2"
+  for i=1:1:items.Count() {
+    set itemName = items.Next(itemName)
+    set itemLocation = items.GetAt(itemName)
+    set flag = $lf($lb("dummy.MAC", "dummy.INC", "dummy.MVB", "dummy.DFI", $e($System.CSP.GetDefaultApp($namespace)_"/index.html", 2, *), "MVB.4.MVI", "Dummy.Package.Class.CLS"), itemName) > 0
+    set assertion = $$$FormatText(templateAssertion, itemLocation, $case(flag, 1: "KEPT", : "PURGED"))
+    do $$$AssertEquals(##class(%File).Exists(itemLocation), flag, assertion)
+  }
+]]></Implementation>
+</Method>
 </Class>
 
 
@@ -4520,7 +4621,7 @@ CreateFile
 ]]></Implementation>
 </Method>
 
-<Method name="TestGetItemWorkspaceLocation">
+<Method name="TestGetItemSourcePathFromWorkspace">
 <Implementation><![CDATA[
   
   set projectName = "dummy-project"  
@@ -4532,7 +4633,7 @@ CreateFile
   for i=1:1:$ll(entries) {
     set entry = $lg(entries, i)
     set expectation = $lg(expectations, i)
-    do $$$AssertEquals(expectation, ##class(Port.Util).GetItemWorkspaceLocation(entry, projectName), $$$FormatText("resolves %1 -> %2", entry, expectation))
+    do $$$AssertEquals(expectation, ##class(Port.Util).GetItemSourcePathFromWorkspace(entry, projectName), $$$FormatText("resolves %1 -> %2", entry, expectation))
   }
 ]]></Implementation>
 </Method>
@@ -4696,25 +4797,13 @@ CreateFile
 
 <Method name="TestUbiquitousInProject">
 <Implementation><![CDATA[
-  // We have to use job and events to prevent this test from breaking the current %SourceControl
-  // becase creating a new project overwrites the process global ^||%Studio.Project.
      
-  job ..CreateDummyProject()::10
-  set status = $System.Event.WaitMsg("", 10)
-  set sc = $lg(status, 2, $$$ERROR($$$GeneralError, "job timed out"))
-  
-  do $$$AssertStatusOK(sc, "dummy project created with success.")
-  if $$$ISERR(sc) quit sc
+  do ..CreateDummyProject()
   
   do $$$AssertEquals($lb("dummy-project"), ##class(Port.Util).UbiquitousInProject("port", "Port.SourceControl.AutoInstall.CLS"), "returns a list that contains 'dummy-project'")
   do $$$LogMessage("Removing the added item ...")
   
-  job ..RemoveDummyProjectItem()::10
-  set status = $System.Event.WaitMsg("", 10)
-  set sc = $lg(status, 2, $$$ERROR($$$GeneralError, "job timed out"))
-  
-  do $$$AssertStatusOK(sc, "item removed with success.")
-  if $$$ISERR(sc) quit sc
+  do ..RemoveDummyProjectItem()
   
   do $$$AssertEquals("", ##class(Port.Util).UbiquitousInProject("port", "Port.SourceControl.AutoInstall.CLS"), "returns an empty list")
   
@@ -4759,7 +4848,7 @@ CreateFile
 </Class>
 
 
-<Project name="port" LastModified="2017-07-10 14:06:42.200155" Target="##class(Port.Util).GetItemWorkspaceLocation(&quot;qualix/rconnect/dummy/js/some/deep/file.js&quot;, &quot;dummy-project&quot;)" TargetType="2" HttpServer="http://localhost:57772">
+<Project name="port" LastModified="2017-07-12 16:19:09.69217" Target="##class(UnitTest.Port.Project.Synchronizer).run()" TargetType="2" HttpServer="http://localhost:57772">
   <Items>
     <ProjectItem name="Port.Configuration" type="CLS"></ProjectItem>
     <ProjectItem name="Port.Logger" type="CLS"></ProjectItem>

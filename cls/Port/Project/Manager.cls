@@ -9,7 +9,7 @@ ClassMethod AssertUtilityCreation(type As %String, path As %String, logLevel As 
   set utility = ""  
   set utilityTypes("E") = "Port.Project.Exporter"
   set utilityTypes("I") = "Port.Project.Importer"
-  set utilityTypes("X") = "Port.Project.XMLExporter"  
+  set utilityTypes("X") = "Port.Project.XMLExporter"
   try {
     set utility = $classmethod(utilityTypes(type), "%New", path, logLevel, sourceExtension)
     quit
@@ -77,7 +77,7 @@ ClassMethod ImportPartial(basePath As %String, target, logLevel As %Boolean = 2,
   quit $$$OK
 }
 
-ClassMethod RemoveInvalidItems(projectName As %String = {^||%Studio.Project}) As %Status
+ClassMethod RemoveInvalidItems(projectName As %String = {^||Port.Project}) As %Status
 {
   set project = ##class(%Studio.Project).%OpenId(projectName)
   $$$QuitOnError(project.Check())

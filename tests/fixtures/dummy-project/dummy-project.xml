@@ -6,6 +6,12 @@
 </Class>
 
 
+<Class name="Dummy.Package.RemoveMe">
+<Abstract>1</Abstract>
+<TimeCreated>64476,38082.55815</TimeCreated>
+</Class>
+
+
 <Routine name="MVB.4" type="MVI" languagemode="11" generated="1"><![CDATA[
     PROMPT ":"
  PRINT
@@ -34,19 +40,25 @@
 ]]></Routine>
 
 
-<Project name="dummy-project" LastModified="2017-07-10 16:08:15.283452" Target="##class(Port.Project.Exporter).test()" TargetType="0">
+<Project name="dummy-project" LastModified="2017-07-12 10:34:54.523227" Target="##class(Port.Project.Exporter).test()" TargetType="0">
   <Items>
     <ProjectItem name="Dummy.Package.Class" type="CLS"></ProjectItem>
+    <ProjectItem name="MVB.4.MVI" type="MAC"></ProjectItem>
     <ProjectItem name="dummy.DFI" type="DFI"></ProjectItem>
     <ProjectItem name="dummy.INC" type="MAC"></ProjectItem>
     <ProjectItem name="dummy.MAC" type="MAC"></ProjectItem>
     <ProjectItem name="dummy.MVB" type="MVB"></ProjectItem>
-    <ProjectItem name="MVB.4.MVI" type="MAC"></ProjectItem>
+    <ProjectItem name="Dummy.Package.RemoveMe" type="CLS"></ProjectItem>
+    <ProjectItem name="removeme.MAC" type="MAC"></ProjectItem>
+    <ProjectItem name="removeme.INC" type="MAC"></ProjectItem>
+    <ProjectItem name="removeme.MVB" type="MVB"></ProjectItem>
+    <ProjectItem name="qualix/rconnect/index.html" type="CSP"></ProjectItem>
+    <ProjectItem name="qualix/rconnect/removeme.csp" type="CSP"></ProjectItem>
   </Items>
   <BreakPoints>
+    <BreakPoint Routine="Port.Project.Exporter.CLS" Offset="ExportClass+18"></BreakPoint>
     <BreakPoint Routine="Port.Project.Synchronizer.CLS" Offset="Purge+19"></BreakPoint>
     <BreakPoint Routine="Port.Project.Synchronizer.CLS" Offset="Scan+7"></BreakPoint>
-    <BreakPoint Routine="Port.Project.Exporter.CLS" Offset="ExportClass+18"></BreakPoint>
   </BreakPoints>
 </Project>
 
@@ -59,6 +71,40 @@
 ]]></Routine>
 
 
+<CSP name="index.html" application="/qualix/rconnect/" default="1"><![CDATA[
+]]></CSP>
+
+
+<CSP name="removeme.csp" application="/qualix/rconnect/" default="1"><![CDATA[
+<html>
+<head>
+
+<!-- Put your page Title here -->
+<title>	Cache Server Page </title>
+
+</head>
+
+<body>
+
+		<!-- Put your page code here -->
+		My page body
+</body>
+</html>
+]]></CSP>
+
+
+<Routine name="removeme" type="INC"><![CDATA[
+]]></Routine>
+
+
+<Routine name="removeme" type="MAC" languagemode="0"><![CDATA[
+]]></Routine>
+
+
 <Document name="dummy.MVB"><![CDATA[
+
+]]></Document>
+
+<Document name="removeme.MVB"><![CDATA[
 
 ]]></Document></Export>

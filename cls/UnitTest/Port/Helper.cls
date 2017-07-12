@@ -99,5 +99,74 @@ ClassMethod RemoveDummyProjectItem()
   do $System.Event.Signal($zparent, sc)
 }
 
+ClassMethod CreateDummyProjectFromFixture(fixturePath As %String, projectName As %String) As %Status
+{
+  
+  set source = $$$NFN(fixturePath_"/"_projectName)
+  set dest = $$$NFN(fixturePath_"/_/"_projectName)
+  set copied = ##class(%File).CopyDir(source, dest, 1,, 1)
+  if 'copied return $$$PERROR($$$UnableToCopySource, source, dest)
+  
+  job ..ImportProjectEvented($$$NFN(dest_"/"_projectName))::10
+  
+  set e = $System.Event.WaitMsg("", 10)
+  if $lg(e) = 0 return $$$ERROR($$$GeneralError, "job timed out")
+  set sc = $lg(e, 2) if $$$ISERR(sc) return sc
+  
+  return $$$OK
+}
+
+ClassMethod ImportProjectEvented(path) As %Status
+{
+  do $System.Event.Signal($zparent, ##class(%Studio.Project).Import(path_".xml"))
+}
+
+ClassMethod DeleteDummyProject(fixturePath As %String, projectName As %String = "dummy-project") As %Status
+{
+  set rows = ##class(%SQL.Statement).%ExecDirect(, "SELECT NAME FROM %STUDIO.PROJECTITEM WHERE PROJECT = ?", projectName)
+  while rows.%Next(.sc) {
+    if $$$ISERR(sc) return sc
+    set itemName = rows.%Get("Name")
+    set isClass = ##class(%Dictionary.ClassDefinition).%ExistsId(itemName)
+    
+    if (##class(Port.Util).IsRoutine(itemName) || 
+        ##class(%RoutineMgr).IsCSPName(itemName) ||
+        isClass
+    ) {
+      if isClass set itemName = itemName_".CLS"
+      set sc = ##class(%RoutineMgr).Delete(itemName)
+      if $$$ISERR(sc) return sc
+    } else {
+      set sc = ##class(Port.Util).CSPPhysicalToLogicalPath(itemName, .logicalPath)
+      if $$$ISERR(sc) return sc
+      set sc = ##class(%File).Delete(logicalPath)
+      if $$$ISERR(sc) return sc
+    }
+  }
+  set normalizedTargetDir = $$$NFN(fixturePath_"/_")
+  
+  set removed = ##class(%File).RemoveDirectoryTree(normalizedTargetDir)
+  if 'removed return $$$PERROR($$$UnableToRemoveDirectory, normalizedTargetDir)
+  
+  return $System.OBJ.DeleteProject(projectName)
+}
+
+ClassMethod GetDummyProjectSourceLocation(projectName As %String, fixturePath As %String) As %ArrayOfDataTypes
+{
+  set locations = ##class(%ArrayOfDataTypes).%New()
+  set rows = ##class(%SQL.Statement).%ExecDirect(, "SELECT NAME, TYPE FROM %STUDIO.PROJECTITEM WHERE PROJECT = ?", projectName)
+  while rows.%Next(.sc) {
+    if $$$ISERR(sc) return sc
+    set type = rows.%Get("Type")
+    set itemName = rows.%Get("Name")
+    
+    if type = "CLS" set itemName = itemName_".CLS"
+    set location = ##class(Port.Util).MountItemSourcePath(itemName, fixturePath)
+    
+    do locations.SetAt(location, itemName)
+  }
+  quit locations
+}
+
 }
 

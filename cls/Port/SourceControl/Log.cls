@@ -3,7 +3,7 @@ Include portutils
 Class Port.SourceControl.Log [ Abstract ]
 {
 
-ClassMethod LogChange(projectName = {^||%Studio.Project}, itemName As %String = "") As %Status
+ClassMethod LogChange(projectName = {^||Port.Project}, itemName As %String = "") As %Status
 {
   do ..ExtractItemDescription(itemName, .name, .type)
   set ^Port.SourceControl.Projects(projectName, type, name) = $zdatetime($horolog, 3,,,,,,,,,0) 
