@@ -20,7 +20,7 @@ Since it uses a project based approach to handle the source code, the following 
 
 ## How to install
 
-In order to install Port, you just need to import the file [port.xml](https://github.com/rfns/port/blob/nightly/port.xml)with the compile flag enabled and restart your Studio.
+In order to install Port, you just need to import the file [port.xml](https://github.com/rfns/port/blob/nightly/port.xml) with the compile flag enabled and restart your Studio.
 
 ## Configuration
 
