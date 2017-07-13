@@ -2,7 +2,7 @@
     <img src="https://img.shields.io/badge/Port-enabled-green.svg" height="18">
 </p>
 
-> STOP! UNKNOWN DANGERS LIES AHEAD: You are on the `nightly` branch, the most recent additions can be found here. However keep in mind that they might be experimental and compatibility with the `master` branch is not guaranteed, you're adviced to use this branch only for further developments!
+> STOP! UNKNOWN DANGERS LIES AHEAD: You are on the `nightly` branch, the most recent additions can be found here. However keep in mind that they might be experimental and compatibility with the `master` branch is not guaranteed, you're advised to use this branch only for further developments!
 
 # Port
 
