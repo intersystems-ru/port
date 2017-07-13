@@ -8,20 +8,20 @@ Property BaseInstance As Port.Project.Base;
 Method OnBeforeOneTest() As %Status
 {
   set ..BaseInstance = ##class(Port.Project.Base).%New("/CacheProjects/"_$namespace_"/"_..#MOCKNAME)
-  quit $$$OK
+  return $$$OK
 }
 
 Method OnBeforeAllTests() As %Status
 {
   $$$QuitOnError(..Create())
-  quit $$$OK
+  return $$$OK
 }
 
 Method OnAfterAllTests() As %Status
 {
   $$$QuitOnError(..Delete())
   do ##class(%File).RemoveDirectoryTree("/CacheProjects/"_$namespace_"/"_..#MOCKNAME)
-  quit $$$OK
+  return $$$OK
 }
 
 Method TestPropertyDefinition()

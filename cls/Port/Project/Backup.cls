@@ -39,7 +39,7 @@ Method Create(ByRef list As %String = 0) As %Status
   
   if $$$ISOK(sc) write ..Logger.Log($$$Done, 1), !
   else  write ..Logger.Log($$$Failed, 1), !
-  quit sc  
+  return sc  
 
 
 Scan(group, type, created)

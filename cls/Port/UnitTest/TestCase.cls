@@ -5,7 +5,7 @@ Method GetTestDirectory(filePath As %String = "") As %String
 {
   
   set testPath = ##class(Port.Configuration).GetTestPath()
-  quit ##class(%File).NormalizeFilename(filePath, ..Manager.Root()_"/"_testPath)
+  return ##class(%File).NormalizeFilename(filePath, ..Manager.Root()_"/"_testPath)
 }
 
 }

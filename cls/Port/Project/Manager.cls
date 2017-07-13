@@ -16,7 +16,7 @@ ClassMethod AssertUtilityCreation(type As %String, path As %String, logLevel As 
   } catch ex {
     set sc = ex.AsStatus()
   }
-  quit utility
+  return utility
 }
 
 ClassMethod Export(outputPath As %String, logLevel As %Integer = 2, force As %Boolean = 0, ignoredPaths As %ListOfDataTypes = "", sourceExtension As %String = "") As %Status
@@ -30,14 +30,14 @@ ClassMethod Export(outputPath As %String, logLevel As %Integer = 2, force As %Bo
   if exporter.AffectedCount > 0 {
     $$$QuitOnError(##class(Port.SourceControl.Log).LogChange(projectName, projectName_".PRJ"))
   }
-  quit $$$OK
+  return $$$OK
 }
 
 ClassMethod ExportToXML(outputPath As %String, logLevel As %Integer = 2, justProject As %Boolean = 0) As %Status
 {
   set exporter = ..AssertUtilityCreation("X", outputPath, logLevel, "", .sc)
   $$$QuitOnError(sc)  
-  quit exporter.ExportToXML(justProject)
+  return exporter.ExportToXML(justProject)
 }
 
 ClassMethod Import(inputPath As %String, logLevel As %Boolean = 2, skipBackup As %Boolean = 0, overwrite As %Boolean = 0, ignoredPaths As %ListOfDataTypes = "", sourceExtension As %String = "") As %Status
@@ -57,7 +57,7 @@ ClassMethod Import(inputPath As %String, logLevel As %Boolean = 2, skipBackup As
   if importer.AffectedCount > 0 {
     $$$QuitOnError(##class(Port.SourceControl.Log).LogChange(projectName, projectName_".PRJ"))
   }
-  quit sc
+  return sc
 }
 
 ClassMethod ImportPartial(basePath As %String, target, logLevel As %Boolean = 2, skipBackup As %Boolean = 0, overwrite As %Boolean = 0, ignoredPaths As %ListOfDataTypes = "", sourceExtension As %String = "") As %Status
@@ -74,7 +74,7 @@ ClassMethod ImportPartial(basePath As %String, target, logLevel As %Boolean = 2,
   $$$QuitOnError(importer.ImportPartial(target, .importedList))
   
   do ..LogFromImportList(importer.GetProjectName(), .importedList)
-  quit $$$OK
+  return $$$OK
 }
 
 ClassMethod RemoveInvalidItems(projectName As %String = {^||Port.Project}) As %Status
@@ -82,7 +82,7 @@ ClassMethod RemoveInvalidItems(projectName As %String = {^||Port.Project}) As %S
   set project = ##class(%Studio.Project).%OpenId(projectName)
   $$$QuitOnError(project.Check())
   $$$QuitOnError(project.%Save()) 
-  quit $$$OK
+  return $$$OK
 }
 
 ClassMethod RemoveItemsByType(projectName As %String, type As %String, Output items As %String) As %Status
@@ -103,7 +103,7 @@ ClassMethod RemoveItemsByType(projectName As %String, type As %String, Output it
     }
   }
   $$$QuitOnError(project.%Save())
-  quit sc
+  return sc
 }
 
 ClassMethod ExportTestSuiteToXML(outputPath As %String) As %Status
@@ -111,7 +111,7 @@ ClassMethod ExportTestSuiteToXML(outputPath As %String) As %Status
   set testPath = ##class(Port.Configuration).GetTestPath()
   set exporter = ..AssertUtilityCreation("X", .outputPath, 2, "", .sc)
   $$$QuitOnError(sc)
-  quit exporter.ExportTests(outputPath_"/"_testPath)
+  return exporter.ExportTests(outputPath_"/"_testPath)
 }
 
 ClassMethod LogFromImportList(projectName As %String, ByRef importList As %String) [ Final, Internal, Private ]
@@ -132,7 +132,7 @@ LoopThroughType(projectName, importedList, group)
     if group = 2 set itemName = itemName_".CLS"   
     do ##class(Port.SourceControl.Log).LogChange(projectName, itemName)
   }
-  quit 1
+  return 1
 }
 
 }

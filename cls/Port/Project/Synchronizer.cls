@@ -15,7 +15,7 @@ Method %OnNew(tool As Port.Project.Base) As %Status
 {
   set ..Tool = tool
   do ..PrepareTypePathList()
-  quit $$$OK
+  return $$$OK
 }
 
 Method PrepareTypePathList() [ Internal, Private ]
@@ -59,7 +59,7 @@ Method AddToWhitelist(itemName As %String, sourceLocation As %String = "") As %S
     set sc = ..Whitelist.SetAt(itemName, dir)
     if $$$ISERR(sc) quit
   }
-  quit sc
+  return sc
 }
 
 Method Purge() As %Status
@@ -146,7 +146,7 @@ Method Scan(statement As %SQL.Statement, path As %String) As %Status [ Private ]
 Method Reset() As %Status
 {
   set i%ExtraneousEntries = ""
-  quit ..Whitelist.Clear()
+  return ..Whitelist.Clear()
 }
 
 }

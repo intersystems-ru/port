@@ -59,46 +59,46 @@ Method %OnNew(target As %String, logLevel As %Integer = 2, sourceExtension = "")
     set ..Logger = ##class(Port.Logger).%New(logLevel) 
     set ..SourceExtension = sourceExtension
     do ..BuildTypePaths(..BasePath)
-    quit $$$OK 
+    return $$$OK 
   }
-  quit $$$PERROR($$$CannotUseRelativePath)
+  return $$$PERROR($$$CannotUseRelativePath)
 }
 
 Method LogExclusive(message As %String, logLevel As %Integer, params... As %String) As %String [ Internal ]
 {
-  if ..Logger.LogLevel '= logLevel quit ""
-  quit ..Log(message, logLevel, params...)
+  if ..Logger.LogLevel '= logLevel return ""
+  return ..Log(message, logLevel, params...)
 }
 
 Method Log(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
 {
-  quit ..Logger.Log(message, logLevel, params...)
+  return ..Logger.Log(message, logLevel, params...)
 }
 
 Method LogLine(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
 {
   
-  quit ..Logger.LogLine(message, logLevel, params...)
+  return ..Logger.LogLine(message, logLevel, params...)
 }
 
 Method LogExclusiveLine(message As %Boolean, logLevel As %Integer = 1, params... As %String) [ Internal ]
 {
-  if ..Logger.LogLevel '= logLevel quit ""
-  quit ..Logger.LogLine(message, logLevel, params...)
+  if ..Logger.LogLevel '= logLevel return ""
+  return ..Logger.LogLine(message, logLevel, params...)
 }
 
 Method GetProjectName() As %String
 {
-  quit ..ProjectName
+  return ..ProjectName
 }
 
 Method Ignore(ignoredPaths As %ArrayOfDataTypes = "") As %Status
 {
   set sc = $$$OK  
   
-  if '$isobject(ignoredPaths) quit sc
+  if '$isobject(ignoredPaths) return sc
   if 'ignoredPaths.%IsA("%Collection.AbstractList") {
-    quit $$$ERROR($$$BadParameter, "ignoredPaths")
+    return $$$ERROR($$$BadParameter, "ignoredPaths")
   }  
   
   for i=1:1:ignoredPaths.Count() {
@@ -106,7 +106,7 @@ Method Ignore(ignoredPaths As %ArrayOfDataTypes = "") As %Status
     set sc = ..IgnoredPaths.Insert(absolutePath)
     if $$$ISERR(sc) quit
   }
-  quit sc
+  return sc
 }
 
 Method IsIgnored(maybeIgnoredPath As %String) As %Boolean
@@ -120,44 +120,44 @@ Method IsIgnored(maybeIgnoredPath As %String) As %Boolean
     set isIgnored = ((path = maybeIgnoredPath) || (maybeIgnoredPath [ path))
     if isIgnored quit
   }
-  quit isIgnored
+  return isIgnored
 }
 
 Method ResolvePathType(itemType As %String, itemName As %String = "") As %String [ Final, Internal, Private ]
 {
   #define Normalize(%path)    ##class(%File).NormalizeFilename(%path)
   
-  if itemType = "CLS" quit ..ClassPath
-  if itemType = "INT" quit ..IntPath
+  if itemType = "CLS" return ..ClassPath
+  if itemType = "INT" return ..IntPath
   if itemType = "INC" || (itemType = "MAC" && ($piece(itemName, ".", 2) = "INC")) {
     // InterSystems groups INC into MAC type, so we patch it checking the name instead.
-    quit ..IncPath
+    return ..IncPath
   }
-  if itemType = "MAC" quit ..MacPath  
-  if itemType = "MVB" quit ..MvbPath
-  if itemType = "MVI" quit ..MviPath  
-  if itemType = "BAS" quit ..BasPath
-  if itemType = "DFI" quit ..DfiPath
-  quit ""
+  if itemType = "MAC" return ..MacPath  
+  if itemType = "MVB" return ..MvbPath
+  if itemType = "MVI" return ..MviPath  
+  if itemType = "BAS" return ..BasPath
+  if itemType = "DFI" return ..DfiPath
+  return ""
 }
 
 Method GetTypePath(itemType As %String, itemName As %String = "") As %String
 {
  
-  if itemType = "CLS" quit ..ClassPath
-  if itemType = "INT" quit ..IntPath
+  if itemType = "CLS" return ..ClassPath
+  if itemType = "INT" return ..IntPath
   if itemType = "INC" || (itemType = "MAC" && ($piece(itemName, ".", 2) = "INC")) {
     // InterSystems groups INC into MAC type, so we patch it checking the name instead.
-    quit ..IncPath
+    return ..IncPath
   }
-  if itemType = "MAC" quit ..MacPath
-  if itemType = "CSP" quit ..WebPath
-  if itemType = "MVB" quit ..MvbPath
-  if itemType = "MVI" quit ..MviPath  
-  if itemType = "BAS" quit ..BasPath
-  if itemType = "DFI" quit ..DfiPath
-  if itemType = "PKG" quit ..ClassPath
-  quit ..WebPath
+  if itemType = "MAC" return ..MacPath
+  if itemType = "CSP" return ..WebPath
+  if itemType = "MVB" return ..MvbPath
+  if itemType = "MVI" return ..MviPath  
+  if itemType = "BAS" return ..BasPath
+  if itemType = "DFI" return ..DfiPath
+  if itemType = "PKG" return ..ClassPath
+  return ..WebPath
 }
 
 Method BuildTypePaths(workingDirectory As %String) As %Status [ Final, Internal, Private ]
@@ -173,7 +173,7 @@ Method BuildTypePaths(workingDirectory As %String) As %Status [ Final, Internal,
   set ..MviPath   = $$$BuildTypedPath("mvi")
   set ..BasPath   = $$$BuildTypedPath("bas")  
   set ..DfiPath   = $$$BuildTypedPath("dfi")
-  quit $$$OK
+  return $$$OK
 }
 
 Method NormalizeOutput(itemName As %String, Output path As %String = "", Output extension As %String = "") As %String [ Private ]
@@ -211,16 +211,16 @@ Method NormalizeOutput(itemName As %String, Output path As %String = "", Output 
     set dest = ##class(%File).NormalizeFilename(baseTypePath_..Slash_$piece(fileWithoutExtension, "/", 3, *))_"."_ext
     set path = ##class(%File).GetDirectory(dest) 
   }
-  quit dest
+  return dest
 }
 
 Method IsOutdated(current As %String, external As %String, isImport As %Boolean = 0) As %Boolean
 {
   
-  if '##class(%File).Exists(external) quit 1 
+  if '##class(%File).Exists(external) return 1 
   set externalTS = $zdt(##class(%File).GetFileDateModified(##class(%File).NormalizeFilename(external)), 3,,,,,,,,,0)
     
-  if externalTS < 0 quit 1
+  if externalTS < 0 return 1
   set lastModified = 0  
   
   set projectTS = ##class(Port.SourceControl.Log).GetLastChange(..GetProjectName(), ..GetProjectName()_".PRJ")
@@ -240,18 +240,18 @@ Method IsOutdated(current As %String, external As %String, isImport As %Boolean 
     }
     set currentTS = $zdatetime(##class(%File).GetFileDateModified(fullSourcePath), 3,,,,,,,,,0)
     // If the file is missing it's considered outdated as well.
-    if currentTS = 0 quit 1
+    if currentTS = 0 return 1
   }   
   
   // Same date for both entries? Then consider updated.
-  if currentTS = externalTS quit 0
+  if currentTS = externalTS return 0
   if 'isImport {  
-    quit (
+    return (
       (currentTS ] externalTS) && 
       (currentTS ] lastModified)
     )
   }
-  quit (
+  return (
     (externalTS ] currentTS) && 
     (externalTS ] lastModified)
   )
@@ -259,7 +259,7 @@ Method IsOutdated(current As %String, external As %String, isImport As %Boolean 
 
 Method GetSourceExtension() As %String [ Private ]
 {
-  quit $select(..SourceExtension '= "" : "."_..SourceExtension, 1: "")
+  return $select(..SourceExtension '= "" : "."_..SourceExtension, 1: "")
 }
 
 }

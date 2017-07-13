@@ -354,7 +354,7 @@ XData LocalePTBR [ XMLNamespace = "https://github.com/rnfs/port" ]
 ClassMethod Uninstall() As %Status
 {
   if '$data(^Port.SourceControl.Settings("installed")) {
-    quit $$$PERROR($$$PortIsNotInstalled, $namespace)
+    return $$$PERROR($$$PortIsNotInstalled, $namespace)
   }
   
   write "Removing Port, please wait ...", !
@@ -366,7 +366,7 @@ ClassMethod Uninstall() As %Status
   set sc = $$$ADDSC(sc, ..RemoveGlobalMapping())  
   if $$$ISOK(sc) write $$$FormatText("Port has been removed from %1.", $namespace), !
   else  write "One or more errors ocurred while removing Port:", !!, $System.Status.GetErrorText(sc)
-  quit $$$OK
+  return $$$OK
 }
 
 ClassMethod Install(force As %Boolean = 0) As %Status
@@ -377,7 +377,7 @@ ClassMethod Install(force As %Boolean = 0) As %Status
     if $data(^Port.SourceControl.Settings("installed")) {
       write "Port is already installed. The installer has been aborted.", !
       write "If you wish to change current settings then please use the wizard (Wizard^Port) or call this method with force=1.", !!
-      quit $$$ERROR($$$GeneralError, "Port is already installed.")
+      return $$$ERROR($$$GeneralError, "Port is already installed.")
     }
   }
   
@@ -415,7 +415,7 @@ ClassMethod Install(force As %Boolean = 0) As %Status
     write !!, "FATAL: Failed to install port due to the following reason: "
     do $System.OBJ.DisplayError(sc)
   }
-  quit sc
+  return sc
 }
 
 ClassMethod CreateGlobalMapping() As %Status
@@ -428,7 +428,7 @@ ClassMethod CreateGlobalMapping() As %Status
   
   if ##class(Config.MapGlobals).Exists(thisNamespace, "Port.SourceControl*") {
     write "> Global is already mapped. Skipping ...", !
-    quit $$$OK
+    return $$$OK
   }
   
   try {
@@ -439,7 +439,7 @@ ClassMethod CreateGlobalMapping() As %Status
     set sc = ex.AsStatus()
   }
   set $namespace = thisNamespace
-  quit sc
+  return sc
 }
 
 ClassMethod RemoveGlobalMapping() As %Status
@@ -451,9 +451,9 @@ ClassMethod RemoveGlobalMapping() As %Status
   set $namespace = "%SYS"  
   
   if ##class(Config.MapGlobals).Exists(thisNamespace, "Port.SourceControl*") {
-    quit ##class(Config.MapGlobals).Delete(thisNamespace, "Port.SourceControl*")
+    return ##class(Config.MapGlobals).Delete(thisNamespace, "Port.SourceControl*")
   }
-  quit $$$OK
+  return $$$OK
 }
 
 ClassMethod GetWebAppPhysicalPath(Output path As %String = "") As %Status
@@ -469,7 +469,7 @@ ClassMethod GetWebAppPhysicalPath(Output path As %String = "") As %Status
   }
   set path = ##class(%File).NormalizeFilename(settings("Path"))
   set $namespace = currentNS
-  quit sc
+  return sc
 }
 
 ClassMethod CreateMessageDictionary() As %Status [ CodeMode = objectgenerator ]
@@ -496,7 +496,7 @@ ClassMethod CreateMessageDictionary() As %Status [ CodeMode = objectgenerator ]
     do %code.WriteLine("  set (localXData, tmpFilename, file) = """"")    
   }
   do %code.WriteLine("  $$$QuitOnError(##class(%MessageDictionary).GenerateInclude(""portmd"",,,""Port Errors,Port Log Messages,Port Menu Labels,Port Context Menu Labels""))")
-  do %code.WriteLine("  quit $$$OK")
+  do %code.WriteLine("  return $$$OK")
 }
 
 }

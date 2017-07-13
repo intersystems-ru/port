@@ -51,7 +51,7 @@ Method OnAfterSave(InternalName As %String) As %Status
       set exporter.SourceExtension = sourceExtension
       
       if '##class(Port.Util).ExistsInProject(projectName, InternalName) {
-        quit $$$OK
+        return $$$OK
       }
       
       if ubiquitousList '= "" {
@@ -85,7 +85,7 @@ Method OnAfterSave(InternalName As %String) As %Status
   if '##class(Port.Configuration).HasCustomWorkspace(projectName) { 
     do ##class(Port.Configuration).SetCustomWorkspace(projectName)
   }   
-  quit sc
+  return sc
 }
 
 Method OnBeforeSave() As %Status
@@ -96,7 +96,7 @@ Method OnBeforeSave() As %Status
     write "Port: "_$$$FormatMsg("Port Log Messages", $$$CannotUseDefault), !
     write "Port: "_$$$FormatMsg("Port Log Messages", $$$CannotUseDefault2), !
   }
-  quit $$$OK
+  return $$$OK
 }
 
 Method UserAction(Type As %Integer, Name As %String, InternalName As %String, SelectedText As %String, ByRef Action As %String, ByRef Target As %String, ByRef Msg As %String, ByRef Reload As %Boolean) As %Status
@@ -121,13 +121,13 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
       if shouldOverwrite do ##class(Port.Configuration).TrackActiveExtension()      
       $$$QuitOnError(##class(Port.Project.Manager).Export(projectPath, logLevel, shouldOverwrite, ignoredPaths, sourceExtension))
       if shouldExportAsXML $$$QuitOnError(##class(Port.Project.Manager).ExportToXML(projectPath))      
-      quit $$$OK
+      return $$$OK
     }
     if name = "%MLExportToXML" {
-      quit ##class(Port.Project.Manager).ExportToXML(projectPath)
+      return ##class(Port.Project.Manager).ExportToXML(projectPath)
     }
     if name = "%MLExportTests" {
-      quit ##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath)
+      return ##class(Port.Project.Manager).ExportTestSuiteToXML(projectPath)
     }
     if name = "%MLRunTests" && (projectPath '= "") {      
       $$$QuitOnError(##class(Port.UnitTest.Manager).RunTest(testPath, "/recursive/run/noload/nodelete"))
@@ -137,19 +137,19 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     }
     if name = "%MLRemoveClasses" {
       $$$QuitOnError(##class(Port.Project.Manager).RemoveItemsByType(projectName, "CLS"))
-      quit ##class(Log).Synchronize()
+      return ##class(Log).Synchronize()
     }
     if name = "%MLRemoveFiles" {
       $$$QuitOnError(##class(Port.Project.Manager).RemoveItemsByType(projectName, "CSP"))
-      quit ##class(Log).Synchronize()
+      return ##class(Log).Synchronize()
     }
     if name = "%MLRemoveRoutines" {
       $$$QuitOnError(##class(Port.Project.Manager).RemoveItemsByType(projectName, "MAC"))
-      quit ##class(Log).Synchronize()
+      return ##class(Log).Synchronize()
     }
     if name = "%MLScanAndFix" {
       $$$QuitOnError(##class(Port.Project.Manager).RemoveInvalidItems(projectName))
-      quit ##class(Log).Synchronize()     
+      return ##class(Log).Synchronize()     
     }
     
     if name = "%CMLExportActive" {
@@ -166,15 +166,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         if shouldExportAsXML $$$QuitOnError(##class(Port.Project.Manager).ExportToXML(projectPath))
       } else {
         set ignoredPaths = ##class(Port.Util).GetIgnoredPaths(projectPath)
-        quit ##class(Port.Project.Manager).Export(projectPath, logLevel, 1)
+        return ##class(Port.Project.Manager).Export(projectPath, logLevel, 1)
       }
     }
     
     if name = "%CMLImportActive" {
       if $$$ucase(InternalName) = ($$$ucase(projectName_".PRJ")) {
-        quit ##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
+        return ##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
       } else {
-        quit ##class(Port.Project.Manager).ImportPartial(projectPath, fullPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
+        return ##class(Port.Project.Manager).ImportPartial(projectPath, fullPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
       }
     }
     
@@ -196,10 +196,10 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     }
     
     if name = "%MLForceImport" {
-      quit ##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
+      return ##class(Port.Project.Manager).Import(projectPath, logLevel, 0, 1, ignoredPaths, sourceExtension)
     }    
   }
-  quit $$$OK
+  return $$$OK
 }
 
 Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As %String, ByRef Enabled As %Boolean, ByRef DisplayName As %String) As %Status
@@ -256,7 +256,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 /// Called after the compile of the item is done.
 Method OnAfterCompile(InternalName As %String) As %Status
 {
-  if $get(%importingFromXML, 0) quit $$$OK
+  if $get(%importingFromXML, 0) return $$$OK
   set projectName = $get(^||Port.Project)
   set sc = $$$OK
   
@@ -279,7 +279,7 @@ Method OnAfterCompile(InternalName As %String) As %Status
       } 
     }
   }
-  quit $$$OK
+  return $$$OK
 }
 
 Method OnBeforeDelete(InternalName As %String) As %Status
@@ -289,7 +289,7 @@ Method OnBeforeDelete(InternalName As %String) As %Status
     set projectName = $piece(InternalName, ".", 1, *-1)
     do ##class(Port.Configuration).RemoveCustomWorkspace(projectName)
   }
-  quit $$$OK
+  return $$$OK
 }
 
 /// This is called before the actual load of data to give the chance
@@ -308,7 +308,7 @@ Method OnBeforeLoad(InternalName As %String) As %Status
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected, InternalName, $lts(ubiquitousList, ", "))
     write !, "Port: "_$$$FormatMsg("Port Log Messages", $$$UbiquitousItemDetected2)
   }
-  quit ..OnBeforeSave()
+  return ..OnBeforeSave()
 }
 
 }

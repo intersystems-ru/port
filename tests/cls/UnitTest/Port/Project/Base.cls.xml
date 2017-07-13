@@ -16,7 +16,7 @@
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   set ..BaseInstance = ##class(Port.Project.Base).%New("/CacheProjects/"_$namespace_"/"_..#MOCKNAME)
-  quit $$$OK
+  return $$$OK
 ]]></Implementation>
 </Method>
 
@@ -24,7 +24,7 @@
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
   $$$QuitOnError(..Create())
-  quit $$$OK
+  return $$$OK
 ]]></Implementation>
 </Method>
 
@@ -33,7 +33,7 @@
 <Implementation><![CDATA[
   $$$QuitOnError(..Delete())
   do ##class(%File).RemoveDirectoryTree("/CacheProjects/"_$namespace_"/"_..#MOCKNAME)
-  quit $$$OK
+  return $$$OK
 ]]></Implementation>
 </Method>
 

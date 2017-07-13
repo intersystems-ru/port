@@ -14,11 +14,7 @@
   
   $$$QuitOnError(..CreateDummyProjectFromFixture(..GetTestDirectory("../fixtures"), "dummy-project"))
   set ..Exporter = ##class(Port.Project.Exporter).%New(..GetTestDirectory("../fixtures/_/dummy-project"), 1)
-  set ..Exporter.Logger.Silent = 1
-  
-  // This is a hack to force the workspace to be resetted back to where it started.
-  // We have to do that because simply by opening a %Studio.Project instance already changes it's value.  
-  
+  set ..Exporter.Logger.Silent = 1  
   return $$$OK
 ]]></Implementation>
 </Method>

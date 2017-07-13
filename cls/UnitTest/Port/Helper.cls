@@ -51,7 +51,7 @@ ClassMethod PrepareDummies(projectName As %String, Output items As %List = "", O
     "dummy.BAS",
     "dummy.MVB",
     "dummy.MVI",
-    $$$FormatText("%1/dummy/index.csp", currentApp),
+    $$$FormatText("%1/dummy/index.csp", currentApp), 
     $$$FormatText("%1/dummy/index.html", currentApp),
     $$$FormatText("%1/dummy/composite.name.should.still.resolve.html", currentApp),
     $$$FormatText("%1/dummy/js/some/deep/file.js", currentApp),
