@@ -79,8 +79,6 @@ Method OnAfterSave(InternalName As %String) As %Status
         if shouldExportAsXML $$$QuitOnError(##class(Port.Project.Manager).ExportToXML(exportPath, 2))
       }
     }  
-  } else {
-    
   }
   if '##class(Port.Configuration).HasCustomWorkspace(projectName) { 
     do ##class(Port.Configuration).SetCustomWorkspace(projectName)
