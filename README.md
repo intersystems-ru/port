@@ -32,16 +32,16 @@ You can configure advanced settings using the class `Port.Configuration`. You ca
 
 When installed, Port adds a Source Control menu, composed with the following options:
 
-* __Export__: Export only the modified items from the current project using the UDL format.
+* __Export__: Exports only the modified items from the current project using the UDL format.
 * __Export to XML__: Exports the current project to XML.
-* __Export tests__: Export all unit test classes related to the current project.
+* __Export tests__: Exports all unit test classes related to the current project.
 * __Remove classes__: Shortcut for removing all classes from the current project.
 * __Remove routines__: Shortcut for removing all routines from the current project.
 * __Remove files__: Shortcut for removing all static (web) files from the current project.
 * __Scan and fix__: Scans the project and remove all entries that are invalid (nonexistent or with an invalid name).
 * __Run tests__: Runs all test suites associated to the current project.
-* __Export (forced)__: Bypass timestamp checks and export all the current project items.
-* __Import (forced)__: Bypass timestamp checks and import all tracked files from the project repository.
+* __Export (forced)__: Bypass timestamp checks and exports all the current project items.
+* __Import (forced)__: Bypass timestamp checks and imports all tracked files from the project repository.
 
 ### Source Control Context Menu
 
